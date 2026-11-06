@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import dev.kosh.financetracker.ui.theme.KoshColors
+import dev.kosh.financetracker.ui.theme.Tinward
 import dev.kosh.financetracker.ui.theme.KoshExtendedTheme
 import dev.kosh.financetracker.ui.theme.Spacing
 
@@ -40,7 +40,7 @@ fun StatementImportDialog(
                     )
                 }
             },
-            containerColor = KoshColors.Graphite,
+            containerColor = Tinward.colors.surface,
         )
 
         is StatementImportUiState.Confirming -> AlertDialog(
@@ -51,7 +51,7 @@ fun StatementImportDialog(
                     Text(
                         "${state.bank} ••${state.accountSuffix} · ${state.periodLabel}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = KoshColors.PrimaryText,
+                        color = Tinward.colors.textPrimary,
                     )
                     Spacer(Modifier.height(Spacing.sm))
                     Text(
@@ -59,7 +59,7 @@ fun StatementImportDialog(
                             "SMS with a unique matching reference will be linked to the statement and counted once. " +
                             "Uncertain matches stay separate for review.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = KoshColors.SecondaryText,
+                        color = Tinward.colors.textSecondary,
                     )
                 }
             },
@@ -69,9 +69,9 @@ fun StatementImportDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) { Text("Cancel", color = KoshColors.SecondaryText) }
+                TextButton(onClick = onDismiss) { Text("Cancel", color = Tinward.colors.textSecondary) }
             },
-            containerColor = KoshColors.Graphite,
+            containerColor = Tinward.colors.surface,
         )
 
         is StatementImportUiState.Done -> {
@@ -91,24 +91,24 @@ fun StatementImportDialog(
                             "Done."
                         },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = KoshColors.PrimaryText,
+                        color = Tinward.colors.textPrimary,
                     )
                 },
                 confirmButton = {
                     TextButton(onClick = onDismiss) { Text("OK", color = KoshExtendedTheme.colors.accentText) }
                 },
-                containerColor = KoshColors.Graphite,
+                containerColor = Tinward.colors.surface,
             )
         }
 
         is StatementImportUiState.Error -> AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("Couldn't import") },
-            text = { Text(state.message, style = MaterialTheme.typography.bodyMedium, color = KoshColors.SecondaryText) },
+            text = { Text(state.message, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary) },
             confirmButton = {
                 TextButton(onClick = onDismiss) { Text("OK", color = KoshExtendedTheme.colors.accentText) }
             },
-            containerColor = KoshColors.Graphite,
+            containerColor = Tinward.colors.surface,
         )
     }
 }

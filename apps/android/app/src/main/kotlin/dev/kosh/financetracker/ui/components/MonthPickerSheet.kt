@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.kosh.financetracker.ui.theme.KoshColors
+import dev.kosh.financetracker.ui.theme.Tinward
 import dev.kosh.financetracker.ui.theme.KoshExtendedTheme
 import dev.kosh.financetracker.ui.theme.Spacing
 import java.time.YearMonth
@@ -51,13 +51,13 @@ fun MonthPickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = KoshColors.Graphite,
+        containerColor = Tinward.colors.surface,
     ) {
         Column(modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
             Text(
                 "Select month",
                 style = MaterialTheme.typography.titleMedium,
-                color = KoshColors.PrimaryText,
+                color = Tinward.colors.textPrimary,
             )
             Spacer(Modifier.height(Spacing.md))
 
@@ -65,7 +65,7 @@ fun MonthPickerSheet(
                 Text(
                     year.toString(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = KoshColors.SecondaryText,
+                    color = Tinward.colors.textSecondary,
                 )
                 Spacer(Modifier.height(Spacing.sm))
 
@@ -106,11 +106,11 @@ private fun MonthCell(
     modifier: Modifier = Modifier,
 ) {
     val label = month.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-    val background = if (selected) KoshExtendedTheme.colors.accentText.copy(alpha = 0.18f) else KoshColors.RaisedGraphite.copy(alpha = 0.6f)
+    val background = if (selected) KoshExtendedTheme.colors.accentText.copy(alpha = 0.18f) else Tinward.colors.raised.copy(alpha = 0.6f)
     val textColor = when {
         selected -> KoshExtendedTheme.colors.accentText
-        hasData -> KoshColors.PrimaryText
-        else -> KoshColors.SecondaryText.copy(alpha = 0.6f)
+        hasData -> Tinward.colors.textPrimary
+        else -> Tinward.colors.textSecondary.copy(alpha = 0.6f)
     }
 
     Box(
@@ -134,7 +134,7 @@ private fun MonthCell(
                         .padding(top = 2.dp)
                         .size(4.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(if (selected) KoshExtendedTheme.colors.accentText else KoshColors.SecondaryText),
+                        .background(if (selected) KoshExtendedTheme.colors.accentText else Tinward.colors.textSecondary),
                 )
             }
         }

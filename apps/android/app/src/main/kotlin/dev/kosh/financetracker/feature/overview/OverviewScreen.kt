@@ -8,6 +8,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -69,8 +73,9 @@ import dev.kosh.financetracker.ui.components.KoshWordmark
 import dev.kosh.financetracker.ui.components.MonthSelectorPill
 import dev.kosh.financetracker.ui.components.SpendSparkline
 import dev.kosh.financetracker.ui.components.VisibilityToggle
-import dev.kosh.financetracker.ui.format.formatRupees
-import dev.kosh.financetracker.ui.theme.KoshColors
+import dev.kosh.financetracker.ui.format.formatMoney
+import dev.kosh.financetracker.ui.format.formatSignedMoney
+import dev.kosh.financetracker.ui.theme.Tinward
 import dev.kosh.financetracker.ui.theme.KoshExtendedTheme
 import dev.kosh.financetracker.ui.theme.Spacing
 import java.math.BigDecimal
@@ -120,7 +125,7 @@ fun OverviewScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(KoshColors.BaseBlack),
+            .background(Tinward.colors.background),
     ) {
         when {
             !hasPermission && !state.hasAnyData -> PermissionGate(
@@ -187,20 +192,30 @@ private fun PermissionGate(onGrant: () -> Unit) {
     ) {
         Spacer(Modifier.height(Spacing.lg))
         KoshWordmark()
-        Spacer(Modifier.height(Spacing.lg))
-        Text("Kosh needs SMS access", style = MaterialTheme.typography.titleLarge, color = KoshColors.PrimaryText)
+        Spacer(Modifier.height(Spacing.xl))
+        Text("All your money.", style = MaterialTheme.typography.displaySmall, color = Tinward.colors.textPrimary)
         Text(
-            "Kosh reads your bank SMS on-device to build your transaction history. Nothing leaves your phone.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = KoshColors.SecondaryText,
+            "In perspective.",
+            style = MaterialTheme.typography.displaySmall.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+            color = Tinward.colors.accentText,
         )
-        Button(
-            onClick = onGrant,
-            colors = ButtonDefaults.buttonColors(containerColor = KoshExtendedTheme.colors.accentText, contentColor = KoshColors.BaseBlack),
-        ) {
-            Text("Grant SMS access")
-        }
+        Text(
+            "Tinward reads your bank SMS on this phone to build your transaction history. Nothing leaves your device.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Tinward.colors.textSecondary,
+        )
+        PrimaryButton("Allow SMS access", onGrant)
     }
+}
+
+@Composable
+private fun PrimaryButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Tinward.colors.accent, contentColor = Tinward.colors.onAccent),
+    ) { Text(label, style = MaterialTheme.typography.labelLarge) }
 }
 
 @Composable
@@ -214,8 +229,8 @@ private fun LoadingState() {
     ) {
         KoshWordmark()
         Spacer(Modifier.height(Spacing.xxl))
-        CircularProgressIndicator(color = KoshExtendedTheme.colors.accentText)
-        Text("Reading your bank SMS…", style = MaterialTheme.typography.bodyMedium, color = KoshColors.SecondaryText)
+        CircularProgressIndicator(color = Tinward.colors.accent)
+        Text("Reading your bank SMS\u2026", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
     }
 }
 
@@ -230,13 +245,13 @@ private fun EmptyHomeState(onScan: () -> Unit) {
     ) {
         KoshWordmark()
         Spacer(Modifier.height(Spacing.xxl))
-        Text("No transactions yet", style = MaterialTheme.typography.titleLarge, color = KoshColors.PrimaryText)
+        Text("No transactions yet", style = MaterialTheme.typography.titleLarge, color = Tinward.colors.textPrimary)
         Text(
-            "Scan your SMS history to find bank transactions. Opening Kosh does not rescan or change your existing history.",
+            "Scan your SMS history to find bank transactions. Opening Tinward does not rescan or change your existing history.",
             style = MaterialTheme.typography.bodyMedium,
-            color = KoshColors.SecondaryText,
+            color = Tinward.colors.textSecondary,
         )
-        TextButton(onClick = onScan) { Text("Scan SMS history") }
+        PrimaryButton("Scan SMS history", onScan)
     }
 }
 
@@ -255,67 +270,60 @@ private fun HomeContent(
     onOpenInsights: () -> Unit,
     onImportClick: () -> Unit,
 ) {
+    Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = Spacing.xxl),
     ) {
         item {
-            WarmHero {
-                Column(
-                    modifier = Modifier
-                        .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(horizontal = Spacing.md),
-                ) {
-                    Spacer(Modifier.height(Spacing.sm))
-                    HomeHeader(
-                        selectedMonth = state.selectedMonth,
-                        availableMonths = state.availableMonths,
-                        monthsWithData = state.monthsWithData,
-                        onSelectMonth = onSelectMonth,
-                        onImportClick = onImportClick,
-                    )
-                    Spacer(Modifier.height(Spacing.lg))
-                    SpendingHero(
-                        summary = state.monthSummary,
-                        month = state.selectedMonth,
-                        dailySpend = state.dailySpend,
-                        amountsHidden = amountsHidden,
-                        onToggleAmountsHidden = onToggleAmountsHidden,
-                        onOpenInsights = onOpenInsights,
-                    )
+            Column(
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = Spacing.md),
+            ) {
+                Spacer(Modifier.height(Spacing.sm))
+                HomeHeader(
+                    selectedMonth = state.selectedMonth,
+                    availableMonths = state.availableMonths,
+                    monthsWithData = state.monthsWithData,
+                    onSelectMonth = onSelectMonth,
+                    onImportClick = onImportClick,
+                )
+                Spacer(Modifier.height(Spacing.lg))
+                LeftToSpendHero(
+                    summary = state.monthSummary,
+                    amountsHidden = amountsHidden,
+                    onToggleAmountsHidden = onToggleAmountsHidden,
+                    onOpenInsights = onOpenInsights,
+                )
+                if (state.needsReviewCount > 0) {
+                    Spacer(Modifier.height(Spacing.md))
+                    NeedsReviewRow(state.needsReviewCount, onClick = onOpenReview)
                 }
             }
         }
 
         item {
-            Column(modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.md)) {
-                IncomeSpendingPanel(state.monthSummary, amountsHidden)
-                Text("Recorded totals are provisional. Card history may be incomplete; unmatched overlapping records are excluded until reconciled.",
-                    style = MaterialTheme.typography.bodySmall, color = KoshColors.SecondaryText)
-                TextButton(onClick = onSmsScan, enabled = !isSyncing) {
-                    Text(if (isSyncing) "Scanning SMS…" else "Scan SMS history")
-                }
-                if (syncSummary != null) {
-                    Spacer(Modifier.height(Spacing.sm))
-                    Text(syncSummary, style = MaterialTheme.typography.bodySmall, color = KoshColors.SecondaryText)
-                }
-
-                if (state.needsReviewCount > 0) {
-                    Spacer(Modifier.height(Spacing.sm))
-                    NeedsReviewChip(state.needsReviewCount, onClick = onOpenReview)
-                }
-            }
+            SectionHeader(
+                title = "Recent activity",
+                action = "See all",
+                onAction = onSeeAllActivity,
+                modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.lg, bottom = Spacing.sm),
+            )
+            RecentActivityCard(
+                transactions = state.recentActivity,
+                amountsHidden = amountsHidden,
+                onOpenTransaction = onOpenTransaction,
+                modifier = Modifier.padding(horizontal = Spacing.md),
+            )
         }
 
         if (state.accountSummaries.isNotEmpty()) {
             item {
-                Text(
-                    "Accounts",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = KoshColors.PrimaryText,
-                    modifier = Modifier.padding(horizontal = Spacing.md),
+                SectionHeader(
+                    title = "Accounts",
+                    modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.lg, bottom = Spacing.sm),
                 )
-                Spacer(Modifier.height(Spacing.sm))
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = Spacing.md),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -324,67 +332,63 @@ private fun HomeContent(
                         AccountCard(account, amountsHidden)
                     }
                 }
-                Spacer(Modifier.height(Spacing.md))
             }
         }
 
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.md),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Recent activity", style = MaterialTheme.typography.titleMedium, color = KoshColors.PrimaryText)
+            Column(modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.lg)) {
                 Text(
-                    "See all",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = KoshExtendedTheme.colors.accentText,
-                    modifier = Modifier.clickable(onClick = onSeeAllActivity),
+                    "Recorded totals are provisional. Card history may be incomplete; unmatched overlapping records are excluded until reconciled.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Tinward.colors.textTertiary,
                 )
+                TextButton(onClick = onSmsScan, enabled = !isSyncing) {
+                    Text(
+                        if (isSyncing) "Scanning SMS\u2026" else "Scan SMS history",
+                        color = Tinward.colors.accentText,
+                    )
+                }
+                if (syncSummary != null) {
+                    Text(syncSummary, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+                }
             }
-            Spacer(Modifier.height(Spacing.sm))
         }
-
-        item {
-            RecentActivityCard(
-                transactions = state.recentActivity,
-                amountsHidden = amountsHidden,
-                onOpenTransaction = onOpenTransaction,
-                modifier = Modifier.padding(horizontal = Spacing.md),
-            )
-        }
+    }
+    // Opaque status-bar scrim so scrolled content never runs under the clock/icons.
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .fillMaxWidth()
+            .windowInsetsTopHeight(WindowInsets.statusBars)
+            .background(Tinward.colors.background),
+    )
     }
 }
 
 @Composable
-private fun WarmHero(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(300.dp),
+private fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    action: String? = null,
+    onAction: () -> Unit = {},
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val glow = Brush.radialGradient(
-                colors = listOf(
-                    KoshColors.WarmHighlight.copy(alpha = 0.9f),
-                    KoshColors.BurntAmber.copy(alpha = 0.55f),
-                    KoshColors.BaseBlack,
-                ),
-                center = Offset(size.width * 0.5f, 0f),
-                radius = size.width * 1.15f,
-            )
-            drawRect(brush = glow)
-            drawRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, KoshColors.BaseBlack),
-                    startY = size.height * 0.35f,
-                    endY = size.height,
-                ),
+        Text(title, style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary)
+        if (action != null) {
+            Text(
+                action,
+                style = MaterialTheme.typography.labelLarge,
+                color = Tinward.colors.accentText,
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .clickable(onClick = onAction)
+                    .wrapContentHeight(Alignment.CenterVertically),
             )
         }
-        content()
     }
 }
 
@@ -406,14 +410,13 @@ private fun HomeHeader(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
-                    .background(KoshColors.RaisedGraphite.copy(alpha = 0.7f))
                     .clickable(onClick = onImportClick)
                     .semantics { contentDescription = "Import bank statement" },
                 contentAlignment = Alignment.Center,
             ) {
-                ImportIcon(tint = KoshColors.SecondaryText)
+                ImportIcon(tint = Tinward.colors.textSecondary)
             }
 
             MonthSelectorPill(
@@ -426,93 +429,61 @@ private fun HomeHeader(
     }
 }
 
-private fun monthLabel(month: YearMonth): String =
-    month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
-
+/**
+ * The one number that answers "where do I stand?": recorded income minus recorded
+ * spending for the month. With no income recorded it falls back to spending alone.
+ */
 @Composable
-private fun SpendingHero(
+private fun LeftToSpendHero(
     summary: MonthSummary,
-    month: YearMonth,
-    dailySpend: List<DaySpend>,
     amountsHidden: Boolean,
     onToggleAmountsHidden: () -> Unit,
     onOpenInsights: () -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.clickable(onClick = onOpenInsights)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Recorded spending", style = MaterialTheme.typography.bodyMedium, color = KoshColors.SecondaryText)
-                Spacer(Modifier.width(Spacing.sm))
-                VisibilityToggle(
-                    visible = !amountsHidden,
-                    onClick = onToggleAmountsHidden,
-                    tint = KoshColors.SecondaryText,
-                )
-            }
-            Text(
-                formatRupees(summary.expense, amountsHidden),
-                style = MaterialTheme.typography.displayLarge.copy(fontFeatureSettings = "tnum"),
-                color = KoshColors.PrimaryText,
-            )
-            Text(monthLabel(month), style = MaterialTheme.typography.bodyMedium, color = KoshColors.SecondaryText)
-        }
+    val hasIncome = summary.income.signum() > 0
+    val left = summary.income.subtract(summary.expense)
+    val headline = if (hasIncome) left else summary.expense
+    val label = when {
+        !hasIncome -> "Spent this month"
+        left.signum() < 0 -> "Over recorded income by"
+        else -> "Left to spend"
+    }
+    val caption = if (hasIncome) "recorded income minus spending" else "no income recorded this month"
 
-        if (dailySpend.size >= 2) {
-            SpendSparkline(
-                days = dailySpend,
-                color = KoshExtendedTheme.colors.accentText,
-                modifier = Modifier
-                    .padding(top = Spacing.md)
-                    .clickable(onClick = onOpenInsights),
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+            Spacer(Modifier.width(Spacing.xs))
+            VisibilityToggle(
+                visible = !amountsHidden,
+                onClick = onToggleAmountsHidden,
+                tint = Tinward.colors.textSecondary,
             )
         }
+        Text(
+            formatMoney(headline.abs(), amountsHidden),
+            style = MaterialTheme.typography.displayLarge,
+            color = if (hasIncome && left.signum() < 0) Tinward.colors.negative else Tinward.colors.textPrimary,
+            modifier = Modifier.clickable(onClick = onOpenInsights),
+        )
+        Text(caption, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+
+        Spacer(Modifier.height(Spacing.md))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            StatColumn("Spent", formatMoney(summary.expense, amountsHidden), Modifier.weight(1f))
+            StatColumn("Income", formatMoney(summary.income, amountsHidden), Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        val fraction = if (hasIncome) (summary.expense.toFloat() / summary.income.toFloat()).coerceIn(0f, 1f) else 0f
+        ProgressBar(fraction = fraction, color = Tinward.colors.accent)
     }
 }
 
 @Composable
-private fun IncomeSpendingPanel(summary: MonthSummary, amountsHidden: Boolean) {
-    val maxValue = maxOf(summary.income, summary.expense, BigDecimal.ONE)
-
-    KoshCard(containerColor = KoshColors.RaisedGraphite) {
-        Row(modifier = Modifier.padding(Spacing.md)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Income", style = MaterialTheme.typography.labelMedium, color = KoshColors.SecondaryText)
-                Text(
-                    formatRupees(summary.income, amountsHidden),
-                    style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
-                    color = KoshColors.PrimaryText,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(Spacing.xs))
-                ProgressBar(
-                    fraction = (summary.income.toFloat() / maxValue.toFloat()).coerceIn(0f, 1f),
-                    color = KoshExtendedTheme.colors.comparison,
-                )
-                if (summary.income.compareTo(BigDecimal.ZERO) == 0) {
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(
-                        "No salary credit found this month",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = KoshColors.SecondaryText,
-                    )
-                }
-            }
-            Spacer(Modifier.width(Spacing.lg))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Spending", style = MaterialTheme.typography.labelMedium, color = KoshColors.SecondaryText)
-                Text(
-                    formatRupees(summary.expense, amountsHidden),
-                    style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
-                    color = KoshColors.PrimaryText,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(Spacing.xs))
-                ProgressBar(
-                    fraction = (summary.expense.toFloat() / maxValue.toFloat()).coerceIn(0f, 1f),
-                    color = KoshExtendedTheme.colors.warmHighlight,
-                )
-            }
-        }
+private fun StatColumn(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Tinward.colors.textPrimary)
     }
 }
 
@@ -521,41 +492,43 @@ private fun ProgressBar(fraction: Float, color: Color) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(4.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(KoshColors.Divider),
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(Tinward.colors.track),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(fraction)
-                .height(4.dp)
-                .background(color, RoundedCornerShape(2.dp)),
+                .height(6.dp)
+                .background(color, RoundedCornerShape(3.dp)),
         )
     }
 }
 
 @Composable
-private fun NeedsReviewChip(count: Int, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(KoshColors.RaisedGraphite.copy(alpha = 0.6f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.ms, vertical = Spacing.sm),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            if (count == 1) {
-                "1 transaction needs a decision — totals may change"
-            } else {
-                "$count transactions need a decision — totals may change"
-            },
-            style = MaterialTheme.typography.labelMedium,
-            color = KoshExtendedTheme.colors.accentText,
-        )
-        Text("›", style = MaterialTheme.typography.titleMedium, color = KoshExtendedTheme.colors.accentText)
+private fun NeedsReviewRow(count: Int, onClick: () -> Unit) {
+    KoshCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier.size(8.dp).clip(CircleShape).background(Tinward.colors.accent),
+                )
+                Spacer(Modifier.width(Spacing.ms))
+                Text(
+                    if (count == 1) "1 transaction needs review" else "$count transactions need review",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Tinward.colors.textPrimary,
+                )
+            }
+            Text("\u203A", style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textTertiary)
+        }
     }
 }
 
@@ -570,7 +543,7 @@ private fun RecentActivityCard(
         Text(
             "No activity in this month yet.",
             style = MaterialTheme.typography.bodyMedium,
-            color = KoshColors.SecondaryText,
+            color = Tinward.colors.textSecondary,
             modifier = modifier,
         )
         return
@@ -581,7 +554,7 @@ private fun RecentActivityCard(
             transactions.forEachIndexed { index, transaction ->
                 RecentActivityRow(transaction, amountsHidden, onClick = { onOpenTransaction(transaction.id) })
                 if (index != transactions.lastIndex) {
-                    HorizontalDivider(color = KoshColors.Divider, thickness = 1.dp)
+                    HorizontalDivider(color = Tinward.colors.divider, thickness = 1.dp)
                 }
             }
         }
@@ -590,44 +563,39 @@ private fun RecentActivityCard(
 
 @Composable
 private fun RecentActivityRow(transaction: Transaction, amountsHidden: Boolean, onClick: () -> Unit) {
+    val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT
+    val isDebit = transaction.direction == TransactionDirection.DEBIT
+    val merchant = transaction.merchant ?: "Unknown"
+    val subtitle = when (transaction.type) {
+        TransactionType.CREDIT_CARD_PAYMENT -> "Card repayment \u00B7 not spending"
+        TransactionType.CREDIT_CARD_PURCHASE -> "Card purchase"
+        TransactionType.TRANSFER -> "Transfer \u00B7 not spending"
+        else -> transaction.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy"))
+    }
+    val amountColor = when {
+        isTransfer -> Tinward.colors.textTertiary
+        isDebit -> Tinward.colors.textPrimary
+        else -> Tinward.colors.positive
+    }
+    val amountText = formatSignedMoney(transaction.amount, if (isTransfer) null else isDebit, amountsHidden)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(Spacing.ms),
+            .padding(horizontal = Spacing.md, vertical = Spacing.ms)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$merchant, $subtitle, $amountText"
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CategoryIconTile(transaction.category, transaction.merchant ?: "?")
+        CategoryIconTile(transaction.category, merchant)
         Spacer(Modifier.width(Spacing.ms))
         Column(modifier = Modifier.weight(1f)) {
-            Text(transaction.merchant ?: "Unknown", style = MaterialTheme.typography.bodyLarge, color = KoshColors.PrimaryText)
-            Text(
-                if (transaction.type == TransactionType.CREDIT_CARD_PAYMENT) {
-                    "Credit card repayment · Not spending or income"
-                } else if (transaction.type == TransactionType.CREDIT_CARD_PURCHASE) {
-                    "Credit card purchase"
-                } else if (transaction.type == TransactionType.TRANSFER) {
-                    "Transfer · Excluded from spending"
-                } else {
-                    transaction.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = if (transaction.type == TransactionType.TRANSFER) KoshExtendedTheme.colors.comparison else KoshColors.SecondaryText,
-            )
+            Text(merchant, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT
-        val isExpense = transaction.direction == TransactionDirection.DEBIT
-        val sign = if (amountsHidden || isTransfer) "" else if (isExpense) "-" else "+"
-        val amountColor = when {
-            isTransfer -> KoshColors.SecondaryText
-            isExpense -> KoshExtendedTheme.colors.expense
-            else -> KoshExtendedTheme.colors.income
-        }
-        Text(
-            "$sign${formatRupees(transaction.amount, amountsHidden)}",
-            style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
-            fontWeight = FontWeight.SemiBold,
-            color = amountColor,
-        )
+        Spacer(Modifier.width(Spacing.sm))
+        Text(amountText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = amountColor)
     }
 }

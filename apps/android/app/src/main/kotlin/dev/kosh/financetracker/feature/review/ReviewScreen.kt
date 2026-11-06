@@ -43,7 +43,7 @@ import dev.kosh.financetracker.ui.components.KoshWordmark
 import dev.kosh.financetracker.ui.components.REVIEW_PICKER_CATEGORIES
 import dev.kosh.financetracker.ui.components.labelFor
 import dev.kosh.financetracker.ui.format.formatRupees
-import dev.kosh.financetracker.ui.theme.KoshColors
+import dev.kosh.financetracker.ui.theme.Tinward
 import dev.kosh.financetracker.ui.theme.KoshExtendedTheme
 import dev.kosh.financetracker.ui.theme.Spacing
 import java.time.ZoneId
@@ -56,7 +56,7 @@ fun ReviewScreen(viewModel: ReviewViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(KoshColors.BaseBlack)
+            .background(Tinward.colors.background)
             .windowInsetsPadding(WindowInsets.statusBars)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.md),
@@ -64,11 +64,11 @@ fun ReviewScreen(viewModel: ReviewViewModel = hiltViewModel()) {
         Spacer(Modifier.height(Spacing.sm))
         KoshWordmark()
         Spacer(Modifier.height(Spacing.md))
-        Text("Review", style = MaterialTheme.typography.titleLarge, color = KoshColors.PrimaryText)
+        Text("Review", style = MaterialTheme.typography.titleLarge, color = Tinward.colors.textPrimary)
         Text(
             "Help us categorize a few transactions",
             style = MaterialTheme.typography.bodyMedium,
-            color = KoshColors.SecondaryText,
+            color = Tinward.colors.textSecondary,
         )
         Spacer(Modifier.height(Spacing.lg))
 
@@ -117,7 +117,7 @@ private fun ReviewCard(
             Text(
                 "${position + 1} of $total",
                 style = MaterialTheme.typography.labelMedium,
-                color = KoshColors.SecondaryText,
+                color = Tinward.colors.textSecondary,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 NavArrow(direction = -1, enabled = position > 0, onClick = onPrevious)
@@ -128,21 +128,21 @@ private fun ReviewCard(
         Text(
             formatRupees(transaction.amount),
             style = MaterialTheme.typography.displaySmall.copy(fontFeatureSettings = "tnum"),
-            color = KoshColors.PrimaryText,
+            color = Tinward.colors.textPrimary,
             modifier = Modifier.padding(top = Spacing.sm),
         )
         Text(
             transaction.timestamp.atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("d MMM yyyy · h:mm a")),
             style = MaterialTheme.typography.labelMedium,
-            color = KoshColors.SecondaryText,
+            color = Tinward.colors.textSecondary,
         )
 
         Text(
             "We couldn't confidently categorize this transaction. It looks like a " +
                 "${transaction.paymentMethod?.name?.lowercase() ?: "card"} payment, but the merchant is unclear.",
             style = MaterialTheme.typography.bodyMedium,
-            color = KoshColors.SecondaryText,
+            color = Tinward.colors.textSecondary,
             modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.md),
         )
 
@@ -150,19 +150,19 @@ private fun ReviewCard(
             Text(
                 "Source message (from bank SMS)",
                 style = MaterialTheme.typography.labelSmall,
-                color = KoshColors.SecondaryText,
+                color = Tinward.colors.textSecondary,
             )
             KoshCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = Spacing.xs, bottom = Spacing.md),
-                containerColor = KoshColors.RaisedGraphite,
+                containerColor = Tinward.colors.raised,
                 cornerRadius = 16.dp,
             ) {
                 Text(
                     transaction.rawSourceText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = KoshColors.PrimaryText,
+                    color = Tinward.colors.textPrimary,
                     modifier = Modifier.padding(Spacing.ms),
                 )
             }
@@ -171,7 +171,7 @@ private fun ReviewCard(
         Text(
             "What type of transaction is this?",
             style = MaterialTheme.typography.titleMedium,
-            color = KoshColors.PrimaryText,
+            color = Tinward.colors.textPrimary,
             modifier = Modifier.padding(bottom = Spacing.sm),
         )
 
@@ -193,9 +193,9 @@ private fun ReviewCard(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = KoshExtendedTheme.colors.accentText,
-                contentColor = KoshColors.BaseBlack,
-                disabledContainerColor = KoshColors.RaisedGraphite,
-                disabledContentColor = KoshColors.SecondaryText,
+                contentColor = Tinward.colors.background,
+                disabledContainerColor = Tinward.colors.raised,
+                disabledContentColor = Tinward.colors.textSecondary,
             ),
             shape = RoundedCornerShape(14.dp),
         ) {
@@ -206,12 +206,12 @@ private fun ReviewCard(
 
 @Composable
 private fun NavArrow(direction: Int, enabled: Boolean, onClick: () -> Unit) {
-    val tint = if (enabled) KoshColors.PrimaryText else KoshColors.SecondaryText.copy(alpha = 0.4f)
+    val tint = if (enabled) Tinward.colors.textPrimary else Tinward.colors.textSecondary.copy(alpha = 0.4f)
     Box(
         modifier = Modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(KoshColors.RaisedGraphite.copy(alpha = 0.6f))
+            .background(Tinward.colors.raised.copy(alpha = 0.6f))
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
@@ -229,12 +229,12 @@ private fun CategoryOptionRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val borderColor = if (selected) KoshExtendedTheme.colors.accentText else KoshColors.Divider
+    val borderColor = if (selected) KoshExtendedTheme.colors.accentText else Tinward.colors.divider
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) KoshExtendedTheme.colors.accentText.copy(alpha = 0.12f) else KoshColors.Graphite)
+            .background(if (selected) KoshExtendedTheme.colors.accentText.copy(alpha = 0.12f) else Tinward.colors.surface)
             .border(1.dp, borderColor, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.ms, vertical = Spacing.sm),
@@ -245,14 +245,14 @@ private fun CategoryOptionRow(
         Text(
             labelFor(category),
             style = MaterialTheme.typography.bodyLarge,
-            color = KoshColors.PrimaryText,
+            color = Tinward.colors.textPrimary,
             modifier = Modifier.weight(1f),
         )
         Box(
             modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape)
-                .border(1.5.dp, if (selected) KoshExtendedTheme.colors.accentText else KoshColors.SecondaryText, CircleShape),
+                .border(1.5.dp, if (selected) KoshExtendedTheme.colors.accentText else Tinward.colors.textSecondary, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             if (selected) {

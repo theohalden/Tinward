@@ -56,10 +56,11 @@ fun KoshBottomBar(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
-        shadowElevation = 2.dp,
+        shadowElevation = 0.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, dev.kosh.financetracker.ui.theme.Tinward.colors.divider),
     ) {
         Row(
             modifier = Modifier

@@ -40,7 +40,7 @@ import dev.kosh.financetracker.ui.components.SpendTrendChart
 import dev.kosh.financetracker.ui.components.colorFor
 import dev.kosh.financetracker.ui.components.labelFor
 import dev.kosh.financetracker.ui.format.formatRupees
-import dev.kosh.financetracker.ui.theme.KoshColors
+import dev.kosh.financetracker.ui.theme.Tinward
 import dev.kosh.financetracker.ui.theme.KoshExtendedTheme
 import dev.kosh.financetracker.ui.theme.Spacing
 import java.time.YearMonth
@@ -56,7 +56,7 @@ fun InsightsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(KoshColors.BaseBlack),
+            .background(Tinward.colors.background),
     ) {
         if (!state.hasAnyData) {
             Column(
@@ -69,7 +69,7 @@ fun InsightsScreen(
                 KoshWordmark()
                 EmptyState(
                     title = "No spending yet",
-                    description = "Once Kosh reads some bank SMS, your spending trend and category breakdown will show up here.",
+                    description = "Once Tinward reads some bank SMS, your spending trend and category breakdown will show up here.",
                 )
             }
         } else {
@@ -106,7 +106,7 @@ fun InsightsScreen(
                         Text(
                             "Where it went",
                             style = MaterialTheme.typography.titleMedium,
-                            color = KoshColors.PrimaryText,
+                            color = Tinward.colors.textPrimary,
                         )
                         Spacer(Modifier.height(Spacing.sm))
                     }
@@ -117,7 +117,7 @@ fun InsightsScreen(
                         Text(
                             "No categorized spending this month yet.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = KoshColors.SecondaryText,
+                            color = Tinward.colors.textSecondary,
                             modifier = Modifier.padding(horizontal = Spacing.md),
                         )
                     }
@@ -149,7 +149,7 @@ private fun InsightsHeader(
         Column {
             KoshWordmark()
             Spacer(Modifier.height(Spacing.xs))
-            Text("Spending", style = MaterialTheme.typography.titleLarge, color = KoshColors.PrimaryText)
+            Text("Spending", style = MaterialTheme.typography.titleLarge, color = Tinward.colors.textPrimary)
         }
 
         MonthSelectorPill(
@@ -164,12 +164,12 @@ private fun InsightsHeader(
 @Composable
 private fun SpendingSummary(expense: java.math.BigDecimal, percentChange: Float?) {
     Column {
-        Text("Spent this month", style = MaterialTheme.typography.bodyMedium, color = KoshColors.SecondaryText)
+        Text("Spent this month", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 formatRupees(expense),
                 style = MaterialTheme.typography.displayLarge.copy(fontFeatureSettings = "tnum"),
-                color = KoshColors.PrimaryText,
+                color = Tinward.colors.textPrimary,
             )
             if (percentChange != null) {
                 Spacer(Modifier.width(Spacing.sm))
@@ -225,12 +225,12 @@ private fun CategoryRow(slice: CategorySlice) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CategoryIconTile(slice.category, labelFor(slice.category), size = 32.dp)
                 Spacer(Modifier.width(Spacing.sm))
-                Text(labelFor(slice.category), style = MaterialTheme.typography.bodyMedium, color = KoshColors.PrimaryText)
+                Text(labelFor(slice.category), style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary)
             }
             Text(
                 formatRupees(slice.amount),
                 style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                color = KoshColors.PrimaryText,
+                color = Tinward.colors.textPrimary,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -240,7 +240,7 @@ private fun CategoryRow(slice: CategorySlice) {
                 .fillMaxWidth()
                 .height(4.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(KoshColors.Divider),
+                .background(Tinward.colors.divider),
         ) {
             Box(
                 modifier = Modifier

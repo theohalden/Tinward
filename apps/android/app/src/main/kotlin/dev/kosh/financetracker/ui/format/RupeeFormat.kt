@@ -2,6 +2,37 @@ package dev.kosh.financetracker.ui.format
 
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.text.NumberFormat
+import java.util.Currency
+import java.util.Locale
+
+/**
+ * Single entry point for money on screen. INR keeps Indian digit grouping
+ * (12,34,567.89); any other ISO currency uses the device locale's grouping and
+ * symbol. `hidden` masks digits for the privacy toggle while keeping the symbol.
+ */
+fun formatMoney(amount: BigDecimal, hidden: Boolean = false, currencyCode: String = "INR"): String {
+    if (currencyCode == "INR") return formatRupees(amount, hidden)
+    val currency = Currency.getInstance(currencyCode)
+    val symbol = currency.getSymbol(Locale.getDefault())
+    if (hidden) return "$symbol*****"
+    val nf = NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
+        this.currency = currency
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+    }
+    return nf.format(amount.setScale(2, RoundingMode.HALF_UP))
+}
+
+/** Signed variant for lists: debits "-", credits "+", neutral (transfers) no sign. */
+fun formatSignedMoney(amount: BigDecimal, isDebit: Boolean?, hidden: Boolean = false, currencyCode: String = "INR"): String {
+    val sign = when {
+        hidden || isDebit == null -> ""
+        isDebit -> "−"
+        else -> "+"
+    }
+    return sign + formatMoney(amount.abs(), hidden, currencyCode)
+}
 
 /**
  * Indian digit grouping: last 3 digits together, then groups of 2

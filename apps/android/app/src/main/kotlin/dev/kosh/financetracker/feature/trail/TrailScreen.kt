@@ -46,7 +46,7 @@ import dev.kosh.financetracker.ui.components.CategoryIconTile
 import dev.kosh.financetracker.ui.components.EmptyState
 import dev.kosh.financetracker.ui.components.KoshWordmark
 import dev.kosh.financetracker.ui.format.formatRupees
-import dev.kosh.financetracker.ui.theme.KoshColors
+import dev.kosh.financetracker.ui.theme.Tinward
 import dev.kosh.financetracker.ui.theme.KoshExtendedTheme
 import dev.kosh.financetracker.ui.theme.Spacing
 import java.time.LocalDate
@@ -69,18 +69,18 @@ fun TrailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(KoshColors.BaseBlack)
+            .background(Tinward.colors.background)
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(horizontal = Spacing.md),
     ) {
         Spacer(Modifier.height(Spacing.sm))
         KoshWordmark()
         Spacer(Modifier.height(Spacing.md))
-        Text("Activity", style = MaterialTheme.typography.titleLarge, color = KoshColors.PrimaryText)
+        Text("Activity", style = MaterialTheme.typography.titleLarge, color = Tinward.colors.textPrimary)
         Text(
             "All transactions from your bank SMS",
             style = MaterialTheme.typography.bodyMedium,
-            color = KoshColors.SecondaryText,
+            color = Tinward.colors.textSecondary,
         )
         Spacer(Modifier.height(Spacing.md))
 
@@ -88,17 +88,17 @@ fun TrailScreen(
             value = state.query,
             onValueChange = viewModel::setQuery,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search descriptions, amounts or accounts", color = KoshColors.SecondaryText) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = KoshColors.SecondaryText) },
+            placeholder = { Text("Search descriptions, amounts or accounts", color = Tinward.colors.textSecondary) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Tinward.colors.textSecondary) },
             singleLine = true,
             shape = RoundedCornerShape(20.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = KoshColors.RaisedGraphite.copy(alpha = 0.7f),
-                focusedContainerColor = KoshColors.RaisedGraphite.copy(alpha = 0.7f),
+                unfocusedContainerColor = Tinward.colors.raised.copy(alpha = 0.7f),
+                focusedContainerColor = Tinward.colors.raised.copy(alpha = 0.7f),
                 unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
                 focusedBorderColor = KoshExtendedTheme.colors.accentText,
-                focusedTextColor = KoshColors.PrimaryText,
-                unfocusedTextColor = KoshColors.PrimaryText,
+                focusedTextColor = Tinward.colors.textPrimary,
+                unfocusedTextColor = Tinward.colors.textPrimary,
                 cursorColor = KoshExtendedTheme.colors.accentText,
             ),
         )
@@ -128,7 +128,7 @@ fun TrailScreen(
                     item { DateHeader(date) }
                     items(dayTransactions, key = { it.id }) { transaction ->
                         TrailRow(transaction, onClick = { onOpenTransaction(transaction.id) })
-                        HorizontalDivider(color = KoshColors.Divider, thickness = 1.dp)
+                        HorizontalDivider(color = Tinward.colors.divider, thickness = 1.dp)
                     }
                 }
             }
@@ -149,14 +149,14 @@ private fun FilterChipRow(selected: TrailFilter, onSelect: (TrailFilter) -> Unit
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(16.dp))
-                .background(if (isSelected) KoshExtendedTheme.colors.accentText.copy(alpha = 0.16f) else KoshColors.RaisedGraphite.copy(alpha = 0.6f))
+                .background(if (isSelected) KoshExtendedTheme.colors.accentText.copy(alpha = 0.16f) else Tinward.colors.raised.copy(alpha = 0.6f))
                 .clickable { onSelect(filter) }
                 .padding(horizontal = Spacing.ms, vertical = Spacing.sm),
         ) {
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (isSelected) KoshExtendedTheme.colors.accentText else KoshColors.SecondaryText,
+                color = if (isSelected) KoshExtendedTheme.colors.accentText else Tinward.colors.textSecondary,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             )
         }
@@ -175,7 +175,7 @@ private fun DateHeader(date: LocalDate) {
         Text(
             "$formatted $dayLabel",
             style = MaterialTheme.typography.labelMedium,
-            color = KoshColors.SecondaryText,
+            color = Tinward.colors.textSecondary,
         )
     }
 }
@@ -198,7 +198,7 @@ private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
             Text(
                 transaction.merchant ?: "Unknown",
                 style = MaterialTheme.typography.bodyLarge,
-                color = KoshColors.PrimaryText,
+                color = Tinward.colors.textPrimary,
             )
             Text(
                 if (transaction.reconciliationNote != null) {
@@ -214,13 +214,13 @@ private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
                     accountSubtitle(transaction)
                 },
                 style = MaterialTheme.typography.labelMedium,
-                color = if (isTransfer) KoshExtendedTheme.colors.comparison else KoshColors.SecondaryText,
+                color = if (isTransfer) KoshExtendedTheme.colors.comparison else Tinward.colors.textSecondary,
             )
         }
         Column(horizontalAlignment = Alignment.End) {
             val sign = if (isTransfer) "" else if (isExpense) "-" else "+"
             val amountColor = when {
-                isTransfer -> KoshColors.SecondaryText
+                isTransfer -> Tinward.colors.textSecondary
                 isExpense -> KoshExtendedTheme.colors.expense
                 else -> KoshExtendedTheme.colors.income
             }
@@ -233,7 +233,7 @@ private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
             Text(
                 transaction.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("h:mm a")),
                 style = MaterialTheme.typography.labelSmall,
-                color = KoshColors.SecondaryText,
+                color = Tinward.colors.textSecondary,
             )
         }
     }

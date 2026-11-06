@@ -21,7 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import dev.kosh.financetracker.ui.theme.KoshColors
+import dev.kosh.financetracker.ui.theme.Tinward
 import dev.kosh.financetracker.ui.theme.Spacing
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -42,17 +42,17 @@ fun MonthSelectorPill(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(KoshColors.RaisedGraphite.copy(alpha = 0.7f))
+            .background(Tinward.colors.raised.copy(alpha = 0.7f))
             .clickable { sheetOpen = true }
             .padding(horizontal = Spacing.ms, vertical = Spacing.sm)
             .semantics { contentDescription = "Selected month: ${monthLabel(selectedMonth)}. Tap to change." },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CalendarIcon(tint = KoshColors.SecondaryText, modifier = Modifier.size(14.dp))
+        CalendarIcon(tint = Tinward.colors.textSecondary, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(Spacing.xs))
-        Text(monthLabel(selectedMonth), style = MaterialTheme.typography.bodyMedium, color = KoshColors.PrimaryText)
+        Text(monthLabel(selectedMonth), style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary)
         Spacer(Modifier.width(Spacing.xs))
-        ChevronDownIcon(tint = KoshColors.SecondaryText)
+        ChevronDownIcon(tint = Tinward.colors.textSecondary)
     }
 
     if (sheetOpen) {

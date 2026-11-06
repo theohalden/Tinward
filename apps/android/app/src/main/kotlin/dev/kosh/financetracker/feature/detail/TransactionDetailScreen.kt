@@ -48,6 +48,7 @@ import dev.kosh.financetracker.ui.components.CategoryIconTile
 import dev.kosh.financetracker.ui.components.REVIEW_PICKER_CATEGORIES
 import dev.kosh.financetracker.ui.components.labelFor
 import dev.kosh.financetracker.ui.theme.KoshExtendedTheme
+import dev.kosh.financetracker.ui.format.formatSignedMoney
 import dev.kosh.financetracker.ui.theme.Spacing
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -93,7 +94,13 @@ fun TransactionDetailScreen(
             val isExpense = current.direction == TransactionDirection.DEBIT
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "₹${current.amount}",
+                    formatSignedMoney(
+                        current.amount,
+                        when (current.type) {
+                            TransactionType.CREDIT_CARD_PAYMENT, TransactionType.TRANSFER -> null
+                            else -> isExpense
+                        },
+                    ),
                     style = MaterialTheme.typography.displaySmall.copy(fontFeatureSettings = "tnum"),
                     color = when (current.type) {
                         TransactionType.CREDIT_CARD_PAYMENT, TransactionType.TRANSFER -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -128,7 +135,7 @@ fun TransactionDetailScreen(
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = KoshExtendedTheme.colors.accentText,
             ) {
-                Tab(selected = tabIndex == 0, onClick = { tabIndex = 0 }, text = { Text("How Kosh understood this") })
+                Tab(selected = tabIndex == 0, onClick = { tabIndex = 0 }, text = { Text("Why it is here") })
                 Tab(selected = tabIndex == 1, onClick = { tabIndex = 1 }, text = { Text("Source & details") })
             }
 

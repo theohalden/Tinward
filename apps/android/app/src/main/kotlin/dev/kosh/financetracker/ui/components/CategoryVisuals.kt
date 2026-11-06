@@ -2,31 +2,37 @@ package dev.kosh.financetracker.ui.components
 
 import androidx.compose.ui.graphics.Color
 import dev.kosh.financetracker.core.model.TransactionCategory
-import dev.kosh.financetracker.ui.theme.KoshColors
+import androidx.compose.runtime.Composable
+import dev.kosh.financetracker.ui.theme.Tinward
 
 /** One stable identity color per category, used everywhere a category shows up
  * (Home, Activity, Review, Spending) so it reads like a recognizable icon color
  * rather than a random per-list-position color. */
-fun colorFor(category: TransactionCategory?): Color = when (category) {
-    TransactionCategory.FOOD -> KoshColors.WarmHighlight
-    TransactionCategory.GROCERIES -> KoshColors.CategoryTeal
-    TransactionCategory.TRAVEL -> KoshColors.CategoryBlue
-    TransactionCategory.FUEL -> KoshColors.BurntAmber
-    TransactionCategory.SHOPPING -> KoshColors.CategoryPink
-    TransactionCategory.BILLS -> KoshColors.Gold
-    TransactionCategory.SUBSCRIPTIONS -> KoshColors.CategoryRed
-    TransactionCategory.RENT -> KoshColors.CategoryIndigo
-    TransactionCategory.FAMILY -> KoshColors.Comparison
-    TransactionCategory.HEALTH -> KoshColors.Positive
-    TransactionCategory.ENTERTAINMENT -> KoshColors.CategoryIndigo
-    TransactionCategory.EDUCATION -> KoshColors.CategoryBlue
-    TransactionCategory.PERSONAL_CARE -> KoshColors.CategoryPink
-    TransactionCategory.HOME -> KoshColors.BurntAmber
-    TransactionCategory.TECHNOLOGY -> KoshColors.CategoryBlue
-    TransactionCategory.BUSINESS -> KoshColors.SecondaryText
-    TransactionCategory.FEES -> KoshColors.Expense
-    TransactionCategory.OTHER -> KoshColors.CategoryTeal
-    TransactionCategory.UNCATEGORIZED, null -> KoshColors.SecondaryText
+@Composable
+fun colorFor(category: TransactionCategory?): Color {
+    val palette = Tinward.colors.category
+    val index = when (category) {
+        TransactionCategory.FOOD -> 0
+        TransactionCategory.GROCERIES -> 2
+        TransactionCategory.TRAVEL -> 1
+        TransactionCategory.FUEL -> 5
+        TransactionCategory.SHOPPING -> 3
+        TransactionCategory.BILLS -> 0
+        TransactionCategory.SUBSCRIPTIONS -> 4
+        TransactionCategory.RENT -> 5
+        TransactionCategory.FAMILY -> 3
+        TransactionCategory.HEALTH -> 2
+        TransactionCategory.ENTERTAINMENT -> 3
+        TransactionCategory.EDUCATION -> 1
+        TransactionCategory.PERSONAL_CARE -> 4
+        TransactionCategory.HOME -> 5
+        TransactionCategory.TECHNOLOGY -> 7
+        TransactionCategory.BUSINESS -> 6
+        TransactionCategory.FEES -> 4
+        TransactionCategory.OTHER -> 6
+        TransactionCategory.UNCATEGORIZED, null -> 6
+    }
+    return palette[index]
 }
 
 fun labelFor(category: TransactionCategory): String = when (category) {

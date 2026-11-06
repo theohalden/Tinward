@@ -37,13 +37,9 @@ import dev.kosh.financetracker.ui.theme.KoshTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Lets the warm hero gradient draw behind the status bar; light (white)
-        // status bar icons since Home's background is dark all the way to the edge.
-        // Forced explicitly — there's no day/night resource split for auto-detect to key off.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
-        )
+        // Edge-to-edge with transparent bars; icon contrast follows the system light/dark
+        // setting, which is also what the Tinward theme follows.
+        enableEdgeToEdge()
         setContent {
             KoshTheme {
                 Surface(

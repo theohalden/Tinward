@@ -1,13 +1,23 @@
 package dev.kosh.financetracker.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/** Semantic colors Material3's ColorScheme has no slot for. */
+/** Read tokens with `Tinward.colors` inside any composable. */
+object Tinward {
+    val colors: TinwardColors
+        @Composable get() = LocalTinwardColors.current
+}
+
+private val LocalTinwardColors = staticCompositionLocalOf { TinwardPalette.Dark }
+
+/** Semantic colours Material3's ColorScheme has no slot for (kept for existing call sites). */
 data class KoshExtendedColors(
     val income: Color,
     val expense: Color,
@@ -18,40 +28,43 @@ data class KoshExtendedColors(
     val raisedSurface: Color,
 )
 
-private val ExtendedColors = KoshExtendedColors(
-    income = KoshColors.Positive,
-    expense = KoshColors.Expense,
-    accentText = KoshColors.Gold,
-    comparison = KoshColors.Comparison,
-    warmHighlight = KoshColors.WarmHighlight,
-    burntAmber = KoshColors.BurntAmber,
-    raisedSurface = KoshColors.RaisedGraphite,
-)
-
-private val LocalKoshExtendedColors = staticCompositionLocalOf { ExtendedColors }
-
 object KoshExtendedTheme {
     val colors: KoshExtendedColors
-        @Composable get() = LocalKoshExtendedColors.current
+        @Composable get() {
+            val c = Tinward.colors
+            return KoshExtendedColors(
+                income = c.positive,
+                expense = c.negative,
+                accentText = c.accentText,
+                comparison = c.transfer,
+                warmHighlight = c.accent,
+                burntAmber = c.accentSoft,
+                raisedSurface = c.raised,
+            )
+        }
 }
 
-private val KoshDarkColorScheme = darkColorScheme(
-    background = KoshColors.BaseBlack,
-    surface = KoshColors.Graphite,
-    surfaceVariant = KoshColors.RaisedGraphite,
-    onBackground = KoshColors.PrimaryText,
-    onSurface = KoshColors.PrimaryText,
-    onSurfaceVariant = KoshColors.SecondaryText,
-    primary = KoshColors.Gold,
-    onPrimary = KoshColors.BaseBlack,
-    outline = KoshColors.Divider,
-)
+private fun TinwardColors.toMaterial() = if (isDark) {
+    darkColorScheme(
+        background = background, surface = surface, surfaceVariant = raised,
+        onBackground = textPrimary, onSurface = textPrimary, onSurfaceVariant = textSecondary,
+        primary = accent, onPrimary = onAccent, outline = divider,
+    )
+} else {
+    lightColorScheme(
+        background = background, surface = surface, surfaceVariant = raised,
+        onBackground = textPrimary, onSurface = textPrimary, onSurfaceVariant = textSecondary,
+        primary = accent, onPrimary = onAccent, outline = divider,
+    )
+}
 
+/** Follows the system light/dark setting. */
 @Composable
-fun KoshTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalKoshExtendedColors provides ExtendedColors) {
+fun KoshTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+    val colors = if (darkTheme) TinwardPalette.Dark else TinwardPalette.Light
+    CompositionLocalProvider(LocalTinwardColors provides colors) {
         MaterialTheme(
-            colorScheme = KoshDarkColorScheme,
+            colorScheme = colors.toMaterial(),
             typography = KoshTypography,
             content = content,
         )
