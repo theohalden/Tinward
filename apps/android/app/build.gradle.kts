@@ -106,6 +106,12 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // Encrypted-at-rest database (SQLCipher under Room) and biometric unlock.
+    implementation("net.zetetic:sqlcipher-android:4.5.6@aar")
+    implementation("androidx.sqlite:sqlite-ktx:2.4.0")
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
+
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
     // HDFC's statement export is legacy binary .xls (no CSV option available) —

@@ -34,14 +34,14 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 | Currency | M | INR is hard-coded in formatting; no currency on transactions. |
 | Recurring bills, reminders, goals | M | Fixed expenses are a static list, not schedules. |
 | Search, filter, split | P | Verify; split is not supported by the model. |
-| App lock (PIN/biometric) | M | None. No `BiometricPrompt`, no `FLAG_SECURE`, no lock on start. |
-| Encryption at rest | M | Plain Room database and plain DataStore. |
-| Backup / restore | M | `allowBackup="false"` (good: no cloud copy), but no user backup or restore at all. |
+| App lock (PIN/biometric) | P | **Slice 1.** Mandatory PIN (6+ digits or passphrase, weak PINs rejected), PBKDF2-SHA256 310k + AES-GCM key wrap, escalating throttle (never wipes), lock on cold start and after auto-lock timeout, `FLAG_SECURE` on lock screens. Verified on device: setup, weak-PIN rejection, wrong PIN, unlock, auto-lock at 36s, no lock at 5s. **Biometric unlock is built but unverified** (needs a person to enrol/touch the sensor). |
+| Encryption at rest | V | **Slice 1.** SQLCipher under Room (raw 256-bit key); budget values AES-GCM under the same key. Existing plaintext DB converted with row-count verification before the plaintext is shredded; verified on device (file header no longer `SQLite format 3`, same figures after). |
+| Backup / restore | V | **Slice 1.** User-initiated `.twbak` (AES-256-GCM, PBKDF2 passphrase separate from the PIN, header authenticated). Restore re-checks the PIN, validates the database before touching anything, rolls back on failure, relaunches the app. Verified on device: create, wrong passphrase rejected, restore replaced a changed value, app relaunched, PIN works afterwards. Cross-device restore is by design but **untested on a second phone**. |
 | Plus tier / Play Billing | M | No billing dependency, no entitlement flag. |
 
 ## 3. Security and privacy findings
 
-1. **No app lock and no encryption at rest.** The financial database is plaintext; anyone with the unlocked phone can open the app.
+1. ~~No app lock and no encryption at rest.~~ **Addressed in Slice 1** (see section 6).
 2. **Raw SMS text is stored.** `Transaction.rawSourceText` keeps the original message in the database. The spec says not to retain raw financial SMS unnecessarily. This needs a decision (drop it, or keep only redacted fields) and a migration.
 3. **Exported components.** `MainActivity` is exported (launcher; expected). `SmsReceiver` is exported but guarded by `BROADCAST_SMS` (correct).
 4. **Backups.** `allowBackup="false"`, so no Android auto-backup leak. There is also no way for a user to recover data, which matters once a PIN exists.
@@ -65,3 +65,17 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 7. Generic CSV import with column mapping.
 8. SMS parser coverage beyond India, with fixtures per region.
 9. Plus: billing, entitlement flag, timeline, rules, scenarios, goals. Only after Free is complete.
+
+## 6. Slice 1 record: app lock, encryption, backup (2026-11-07)
+
+**Design.** A random 256-bit data key (DEK) encrypts the database (SQLCipher) and budget values (AES-GCM). The DEK is stored only wrapped under a key derived from the PIN (PBKDF2-HMAC-SHA256, 310,000 iterations, random salt); a wrong PIN fails the GCM tag. The PIN is never stored. Biometric unlock wraps the same DEK under an Android Keystore key that requires a strong biometric per use and is invalidated when biometrics change; the PIN stays the root credential.
+
+**Schema/data migration.** No Room schema change (still v8). The plaintext `finance-tracker.db` is copied table by table into a SQLCipher file, row counts are compared, then the plaintext (and `-wal`/`-shm`) is overwritten and deleted. A crash at any step is recovered by the next unlock. (SQLCipher's ATTACH + `sqlcipher_export` was tried first and failed because ATTACH is per-connection and the connection pool does not guarantee one connection.) Budget DataStore values written before the lock existed are re-saved encrypted after first unlock.
+
+**Background SMS while locked.** `SmsReceiver` no longer touches the database when locked. It records only a flag; the message text is never staged. After the next unlock the normal de-duplicating inbox scan runs. Limit: a message deleted from the inbox before the user unlocks is missed.
+
+**Honest limits.** The lock gates the UI and the key; once unlocked the database stays open until the process ends (it is not closed on every re-lock). The throttle and auto-lock use wall-clock time, so changing the phone clock can shorten a wait. A rooted or compromised device, malware or a weak PIN defeats local protection. There is no PIN reset: only an encrypted backup restores data after a forgotten PIN.
+
+**Tests.** `VaultCoreTest` (10) and `BackupCodecTest` (6) plus the existing suite: 130 unit tests pass. Covered: key wrap round trip, wrong PIN, throttle escalation and persistence across process death, PIN change keeps data, weak PIN rejection, tampered key fails closed, backup round trip, plaintext absent from file, wrong passphrase, flipped byte anywhere, truncation, non-backup input.
+
+**Not verified.** Biometric enrol/unlock; SMS arriving while locked; reboot behaviour; restore onto a second device; large databases (tested with 33 transactions); TalkBack on the lock screen; the "hide in recents" switch turned on (lock screens were confirmed hidden from screenshots); the setup crash-recovery paths other than "setup interrupted before conversion".

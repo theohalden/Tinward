@@ -54,6 +54,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
     val appearance by viewModel.appearance.collectAsState()
     var showCategories by remember { mutableStateOf(false) }
     var exportNote by remember { mutableStateOf<String?>(null) }
+    var securityNote by remember { mutableStateOf<String?>(null) }
     val smsGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
     val version = remember { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "" }
 
@@ -69,6 +70,9 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 when (appearance) { Appearance.SYSTEM -> 0; Appearance.LIGHT -> 1; Appearance.DARK -> 2 },
                 { viewModel.setAppearance(Appearance.values()[it]) },
             )
+
+            SectionLabel("Security")
+            SecuritySection(viewModel.vault, viewModel.backup, securityNote) { securityNote = it }
 
             SectionLabel("Data")
             KoshCard {
@@ -101,7 +105,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 }
                 HorizontalDivider(color = Tinward.colors.divider)
                 Text(
-                    "Tinward reads bank SMS on this phone only. There is no account, no analytics and no network permission. Data is not encrypted by Tinward itself, so keep your phone locked.",
+                    "Tinward reads bank SMS on this phone only. There is no account, no analytics and no network permission. Your data is encrypted on this phone and locked behind your PIN.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Tinward.colors.textTertiary,
                     modifier = Modifier.padding(Spacing.md),

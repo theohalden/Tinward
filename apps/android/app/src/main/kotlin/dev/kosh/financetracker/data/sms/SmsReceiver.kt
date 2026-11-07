@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
-import dagger.hilt.android.AndroidEntryPoint
 import dev.kosh.financetracker.core.classifier.FinancialMessageDetector
 import dev.kosh.financetracker.core.classifier.toTransaction
 import dev.kosh.financetracker.core.model.EventSource
@@ -17,19 +16,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.time.Instant
-import javax.inject.Inject
 
 /**
  * Catches new SMS the instant they arrive so transactions appear without the user
  * having to open the app and rescan. Feeds the same detector/parser/repository path
  * as historical import (Phase 2), just triggered live instead of on demand.
  */
-@AndroidEntryPoint
 class SmsReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var parserRegistry: TransactionParserRegistry
-
-    @Inject lateinit var transactionRepository: TransactionRepository
+    /**
+     * Not a Hilt-injected receiver on purpose: injecting the repository would open the encrypted
+     * database, which only exists while the app is unlocked.
+     */
+    @dagger.hilt.EntryPoint
+    @dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+    interface Deps {
+        fun vault(): dev.kosh.financetracker.security.Vault
+        fun parserRegistry(): TransactionParserRegistry
+        fun repository(): javax.inject.Provider<TransactionRepository>
+    }
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
@@ -42,6 +47,16 @@ class SmsReceiver : BroadcastReceiver() {
         val timestampEpochMillis = messages[0].timestampMillis
 
         if (!FinancialMessageDetector.isFinancialMessage(body)) return
+
+        val deps = dagger.hilt.android.EntryPointAccessors.fromApplication(context.applicationContext, Deps::class.java)
+        if (!deps.vault().isUnlocked) {
+            // Locked: nothing is staged and no message text is kept. The inbox still holds the
+            // SMS, so the next unlock runs the normal (de-duplicating) scan to catch up.
+            deps.vault().smsMissedWhileLocked = true
+            return
+        }
+        val parserRegistry = deps.parserRegistry()
+        val transactionRepository = deps.repository().get()
 
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {

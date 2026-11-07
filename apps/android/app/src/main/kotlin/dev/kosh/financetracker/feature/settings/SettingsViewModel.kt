@@ -22,6 +22,8 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsStore,
     private val repository: TransactionRepository,
+    val vault: dev.kosh.financetracker.security.Vault,
+    val backup: dev.kosh.financetracker.security.BackupManager,
 ) : ViewModel() {
     val appearance: StateFlow<Appearance> = settings.appearance
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Appearance.SYSTEM)

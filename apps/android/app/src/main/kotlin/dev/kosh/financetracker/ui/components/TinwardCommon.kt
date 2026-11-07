@@ -146,6 +146,8 @@ fun TinwardTextField(
     prefix: String? = null,
     numeric: Boolean = false,
     singleLine: Boolean = true,
+    secret: Boolean = false,
+    digitsOnly: Boolean = false,
 ) {
     OutlinedTextField(
         value = value,
@@ -155,7 +157,15 @@ fun TinwardTextField(
         placeholder = placeholder?.let { { Text(it, color = Tinward.colors.textTertiary) } },
         prefix = prefix?.let { { Text(it) } },
         singleLine = singleLine,
-        keyboardOptions = KeyboardOptions(keyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text),
+        visualTransformation = if (secret) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = when {
+                secret && digitsOnly -> KeyboardType.NumberPassword
+                secret -> KeyboardType.Password
+                numeric -> KeyboardType.Decimal
+                else -> KeyboardType.Text
+            },
+        ),
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = Tinward.colors.surface,

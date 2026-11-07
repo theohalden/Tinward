@@ -20,10 +20,16 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): FinanceDatabase =
-        Room.databaseBuilder(context, FinanceDatabase::class.java, FinanceDatabase.DB_NAME)
+    fun provideDatabase(@ApplicationContext context: Context, vault: dev.kosh.financetracker.security.Vault): FinanceDatabase {
+        // The database only exists while the app is unlocked. Anything that needs it before
+        // that (a bug) fails loudly instead of silently opening plaintext storage.
+        val passphrase = vault.databasePassphrase() ?: error("Database requested while the app is locked")
+        dev.kosh.financetracker.security.DatabaseEncryptor.loadNative()
+        return Room.databaseBuilder(context, FinanceDatabase::class.java, FinanceDatabase.DB_NAME)
+            .openHelperFactory(net.zetetic.database.sqlcipher.SupportOpenHelperFactory(passphrase))
             .addMigrations(FinanceDatabase.MIGRATION_7_8)
             .build()
+    }
 
     @Provides
     fun provideTransactionDao(database: FinanceDatabase): TransactionDao =

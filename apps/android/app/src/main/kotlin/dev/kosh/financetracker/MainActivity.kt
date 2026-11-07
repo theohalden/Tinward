@@ -2,7 +2,7 @@ package dev.kosh.financetracker
 
 import android.graphics.Color as AndroidColor
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,7 +24,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import android.view.WindowManager
 import dagger.hilt.android.AndroidEntryPoint
+import dev.kosh.financetracker.feature.lock.LockViewModel
+import dev.kosh.financetracker.feature.lock.SetupLockScreen
+import dev.kosh.financetracker.feature.lock.UnlockScreen
+import dev.kosh.financetracker.security.LockState
+import dev.kosh.financetracker.security.Vault
 import dev.kosh.financetracker.data.settings.Appearance
 import dev.kosh.financetracker.feature.accounts.AccountsScreen
 import dev.kosh.financetracker.feature.addtransaction.AddTransactionScreen
@@ -43,14 +49,40 @@ import dev.kosh.financetracker.ui.components.KoshBottomBar
 import dev.kosh.financetracker.ui.theme.KoshTheme
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private val shell: AppShellViewModel by viewModels()
+    private val lockVm: LockViewModel by viewModels()
+    @javax.inject.Inject lateinit var vault: Vault
+
+    override fun onStart() {
+        super.onStart()
+        vault.onForegrounded()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        vault.onBackgrounded()
+        // Backing out of the app (not a rotation) ends the session.
+        if (isFinishing) vault.lock()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             val appearance by shell.appearance.collectAsState()
             val onboarded by shell.onboarded.collectAsState()
+            val lockState by vault.state.collectAsState()
+            val secureScreen by vault.secureScreen.collectAsState()
+            // Hides the app in the recents switcher and blocks screenshots/screen recording.
+            // Always on while locked or setting up; user-controllable once unlocked.
+            DisposableEffect(secureScreen, lockState) {
+                if (secureScreen || lockState != LockState.UNLOCKED) {
+                    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+                onDispose { }
+            }
             val dark = when (appearance) {
                 Appearance.SYSTEM -> isSystemInDarkTheme()
                 Appearance.LIGHT -> false
@@ -66,10 +98,14 @@ class MainActivity : ComponentActivity() {
             }
             KoshTheme(darkTheme = dark) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    when (onboarded) {
-                        null -> Unit
-                        false -> OnboardingScreen(onFinish = shell::finishOnboarding)
-                        true -> KoshApp()
+                    // The finance UI (and everything that opens the database) exists only while unlocked.
+                    when {
+                        onboarded == null -> Unit
+                        lockState == LockState.NO_PIN && onboarded == false -> OnboardingScreen(onFinish = shell::finishOnboarding)
+                        lockState == LockState.NO_PIN -> SetupLockScreen(lockVm)
+                        lockState == LockState.LOCKED -> UnlockScreen(lockVm)
+                        onboarded == false -> OnboardingScreen(onFinish = shell::finishOnboarding)
+                        else -> KoshApp()
                     }
                 }
             }
