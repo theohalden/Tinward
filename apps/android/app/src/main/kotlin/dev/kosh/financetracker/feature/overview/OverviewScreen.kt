@@ -92,6 +92,7 @@ fun OverviewScreen(
     onSeeAllActivity: () -> Unit,
     onOpenInsights: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenPlan: () -> Unit,
     viewModel: OverviewViewModel = hiltViewModel(),
     importViewModel: StatementImportViewModel = hiltViewModel(),
 ) {
@@ -161,6 +162,7 @@ fun OverviewScreen(
                 onSeeAllActivity = onSeeAllActivity,
                 onOpenInsights = onOpenInsights,
                 onOpenSettings = onOpenSettings,
+                onOpenPlan = onOpenPlan,
                 onImportClick = {
                     filePickerLauncher.launch(
                         arrayOf(
@@ -272,6 +274,7 @@ private fun HomeContent(
     onSeeAllActivity: () -> Unit,
     onOpenInsights: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenPlan: () -> Unit,
     onImportClick: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -297,6 +300,7 @@ private fun HomeContent(
                 Spacer(Modifier.height(Spacing.lg))
                 LeftToSpendHero(
                     summary = state.monthSummary,
+                    plannedIncome = state.plannedIncome,
                     amountsHidden = amountsHidden,
                     onToggleAmountsHidden = onToggleAmountsHidden,
                     onOpenInsights = onOpenInsights,
@@ -321,6 +325,22 @@ private fun HomeContent(
                 onOpenTransaction = onOpenTransaction,
                 modifier = Modifier.padding(horizontal = Spacing.md),
             )
+        }
+
+        if (state.fixedExpenses.isNotEmpty()) {
+            item {
+                SectionHeader(
+                    title = "Coming up",
+                    action = "Plan",
+                    onAction = onOpenPlan,
+                    modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.lg, bottom = Spacing.sm),
+                )
+                ComingUpCard(
+                    items = state.fixedExpenses,
+                    amountsHidden = amountsHidden,
+                    modifier = Modifier.padding(horizontal = Spacing.md),
+                )
+            }
         }
 
         if (state.accountSummaries.isNotEmpty()) {
@@ -450,19 +470,26 @@ private fun HomeHeader(
 @Composable
 private fun LeftToSpendHero(
     summary: MonthSummary,
+    plannedIncome: java.math.BigDecimal?,
     amountsHidden: Boolean,
     onToggleAmountsHidden: () -> Unit,
     onOpenInsights: () -> Unit,
 ) {
-    val hasIncome = summary.income.signum() > 0
-    val left = summary.income.subtract(summary.expense)
+    val recorded = summary.income.signum() > 0
+    val income = if (recorded) summary.income else plannedIncome ?: summary.income
+    val hasIncome = income.signum() > 0
+    val left = income.subtract(summary.expense)
     val headline = if (hasIncome) left else summary.expense
     val label = when {
         !hasIncome -> "Spent this month"
         left.signum() < 0 -> "Over recorded income by"
         else -> "Left to spend"
     }
-    val caption = if (hasIncome) "recorded income minus spending" else "no income recorded this month"
+    val caption = when {
+        recorded -> "recorded income minus spending"
+        hasIncome -> "planned income minus spending"
+        else -> "no income recorded this month"
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -485,10 +512,10 @@ private fun LeftToSpendHero(
         Spacer(Modifier.height(Spacing.md))
         Row(modifier = Modifier.fillMaxWidth()) {
             StatColumn("Spent", formatMoney(summary.expense, amountsHidden), Modifier.weight(1f))
-            StatColumn("Income", formatMoney(summary.income, amountsHidden), Modifier.weight(1f))
+            StatColumn(if (recorded || !hasIncome) "Income" else "Planned income", formatMoney(income, amountsHidden), Modifier.weight(1f))
         }
         Spacer(Modifier.height(Spacing.sm))
-        val fraction = if (hasIncome) (summary.expense.toFloat() / summary.income.toFloat()).coerceIn(0f, 1f) else 0f
+        val fraction = if (hasIncome) (summary.expense.toFloat() / income.toFloat()).coerceIn(0f, 1f) else 0f
         ProgressBar(fraction = fraction, color = Tinward.colors.accent)
     }
 }
@@ -570,6 +597,42 @@ private fun RecentActivityCard(
                 if (index != transactions.lastIndex) {
                     HorizontalDivider(color = Tinward.colors.divider, thickness = 1.dp)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComingUpCard(
+    items: List<dev.kosh.financetracker.data.budget.FixedExpenseItem>,
+    amountsHidden: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    KoshCard(modifier = modifier.fillMaxWidth()) {
+        Column {
+            items.forEach { item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(item.label, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, modifier = Modifier.weight(1f))
+                    Text(formatMoney(item.amount, amountsHidden), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textSecondary)
+                }
+                HorizontalDivider(color = Tinward.colors.divider, thickness = 1.dp)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Fixed costs per month", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+                Text(
+                    formatMoney(items.fold(java.math.BigDecimal.ZERO) { a, b -> a + b.amount }, amountsHidden),
+                    style = MaterialTheme.typography.labelLarge, color = Tinward.colors.textPrimary,
+                )
             }
         }
     }

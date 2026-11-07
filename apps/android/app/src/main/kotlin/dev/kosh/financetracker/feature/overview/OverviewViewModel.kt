@@ -9,6 +9,8 @@ import dev.kosh.financetracker.core.finance.DaySpend
 import dev.kosh.financetracker.core.finance.FinanceCalculator
 import dev.kosh.financetracker.core.finance.MonthSummary
 import dev.kosh.financetracker.core.model.Transaction
+import dev.kosh.financetracker.data.budget.FixedBudgetStore
+import dev.kosh.financetracker.data.budget.FixedExpenseItem
 import dev.kosh.financetracker.data.repository.TransactionRepository
 import dev.kosh.financetracker.feature.sync.SmsSyncManager
 import dev.kosh.financetracker.feature.sync.SyncState
@@ -35,12 +37,16 @@ data class OverviewUiState(
     val totalCount: Int = 0,
     val needsReviewCount: Int = 0,
     val hasAnyData: Boolean = false,
+    /** Income declared in Plan; used when no income is recorded for the month. */
+    val plannedIncome: BigDecimal? = null,
+    val fixedExpenses: List<FixedExpenseItem> = emptyList(),
 )
 
 @HiltViewModel
 class OverviewViewModel @Inject constructor(
     private val repository: TransactionRepository,
     private val syncManager: SmsSyncManager,
+    budgetStore: FixedBudgetStore,
 ) : ViewModel() {
 
     private val zone = ZoneId.systemDefault()
@@ -49,7 +55,9 @@ class OverviewViewModel @Inject constructor(
     val uiState: StateFlow<OverviewUiState> = combine(
         repository.observeTransactions(),
         selectedMonth,
-    ) { transactions, explicitMonth ->
+        budgetStore.monthlyIncome,
+        budgetStore.expenses,
+    ) { transactions, explicitMonth, plannedIncome, fixed ->
         val month = explicitMonth ?: YearMonth.now(zone)
         val monthsWithData = FinanceCalculator.monthsWithData(transactions, zone)
         // Always at least a real rolling window so the selector is genuinely
@@ -72,6 +80,8 @@ class OverviewViewModel @Inject constructor(
             totalCount = transactions.size,
             needsReviewCount = FinanceCalculator.uncategorizedCountForMonth(transactions, month, zone),
             hasAnyData = transactions.isNotEmpty(),
+            plannedIncome = plannedIncome?.takeIf { it.signum() > 0 },
+            fixedExpenses = fixed,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewUiState())
 

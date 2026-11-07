@@ -118,6 +118,7 @@ private fun KoshApp() {
                     onSeeAllActivity = { navController.navigateTab(KoshDestination.Trail) },
                     onOpenInsights = { navController.navigate(KoshDestination.Insights.route) },
                     onOpenSettings = { navController.navigate(KoshDestination.Settings.route) },
+                    onOpenPlan = { navController.navigateTab(KoshDestination.Plan) },
                 )
             }
             composable(KoshDestination.Trail.route) {
