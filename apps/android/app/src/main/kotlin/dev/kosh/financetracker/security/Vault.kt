@@ -59,7 +59,7 @@ class Vault @Inject constructor(@ApplicationContext private val context: Context
 
     /** Creates the PIN and converts any existing plaintext data. Returns an error message or null. */
     suspend fun setup(secret: CharArray): String? = withContext(Dispatchers.IO) {
-        VaultCore.weakness(secret)?.let { return@withContext it }
+        VaultCore.pinProblem(secret)?.let { return@withContext it }
         val newDek = core.setup(secret)
         finishUnlock(newDek)
     }
@@ -93,7 +93,7 @@ class Vault @Inject constructor(@ApplicationContext private val context: Context
 
     /** Verifies the current secret, then re-protects the same data key with the new one. */
     suspend fun changeSecret(current: CharArray, new: CharArray): String? = withContext(Dispatchers.IO) {
-        VaultCore.weakness(new)?.let { return@withContext it }
+        VaultCore.pinProblem(new)?.let { return@withContext it }
         when (val r = core.unlock(current)) {
             is UnlockResult.Success -> { core.wrap(new, r.dek); clearBiometric(); null }
             is UnlockResult.Throttled -> "Too many attempts. Try again later."

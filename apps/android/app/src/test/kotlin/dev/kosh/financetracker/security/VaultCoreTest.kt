@@ -81,6 +81,14 @@ class VaultCoreTest {
         assertNull(VaultCore.weakness("correct horse".toCharArray()))
     }
 
+    @Test fun `app PIN must be exactly six digits`() {
+        assertNotNull(VaultCore.pinProblem("48291".toCharArray()))
+        assertNotNull(VaultCore.pinProblem("4829155".toCharArray()))
+        assertNotNull(VaultCore.pinProblem("48291a".toCharArray()))
+        assertNotNull(VaultCore.pinProblem("123456".toCharArray()))
+        assertNull(VaultCore.pinProblem("482915".toCharArray()))
+    }
+
     @Test fun `tampered wrapped key fails closed`() {
         val s = MemoryVaultStorage()
         val v = vault(s)

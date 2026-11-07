@@ -119,6 +119,14 @@ class VaultCore(
             else -> 3_600_000L
         }
 
+        const val PIN_LENGTH = 6
+
+        /** App PINs are exactly [PIN_LENGTH] digits (entered on an on-screen number pad), minus trivial ones. */
+        fun pinProblem(pin: CharArray): String? {
+            if (pin.size != PIN_LENGTH || !pin.all { it in '0'..'9' }) return "Use exactly $PIN_LENGTH digits."
+            return weakness(pin)
+        }
+
         /** Rejects secrets the spec calls too weak: under 6 characters, one repeated character, or a simple run. */
         fun weakness(secret: CharArray): String? {
             if (secret.size < 6) return "Use at least 6 characters."

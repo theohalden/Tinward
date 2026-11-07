@@ -125,8 +125,9 @@ fun SecuritySection(vault: Vault, backup: BackupManager, note: String?, onNote: 
         Dialog.None -> Unit
         Dialog.ChangePin -> FormDialog(
             title = "Change PIN",
-            fields = listOf("Current PIN", "New PIN or passphrase (6+)", "Repeat new"),
+            fields = listOf("Current PIN", "New PIN (6 digits)", "Repeat new PIN"),
             confirm = "Change",
+            pinFields = setOf(0, 1, 2),
             onDismiss = { dialog = Dialog.None },
         ) { (cur, new, again) ->
             if (new != again) "The new entries don't match."
@@ -150,6 +151,7 @@ fun SecuritySection(vault: Vault, backup: BackupManager, note: String?, onNote: 
             title = "Restore backup",
             fields = listOf("Backup passphrase", "Current PIN"),
             confirm = "Restore",
+            pinFields = setOf(1),
             onDismiss = { dialog = Dialog.None },
             body = "This replaces all data on this phone. The app restarts, then asks for your current PIN.",
         ) { (bp, pin) ->
@@ -199,6 +201,7 @@ private fun FormDialog(
     confirm: String,
     onDismiss: () -> Unit,
     body: String? = null,
+    pinFields: Set<Int> = emptySet(),
     onSubmit: suspend (List<String>) -> String?,
 ) {
     val values = remember { mutableStateOf(List(fields.size) { "" }) }
@@ -214,7 +217,12 @@ private fun FormDialog(
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 body?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary) }
                 fields.forEachIndexed { i, label ->
-                    TinwardTextField(values.value[i], { v -> values.value = values.value.toMutableList().also { it[i] = v }; error = null }, label, secret = true)
+                    val isPin = i in pinFields
+                    TinwardTextField(
+                        values.value[i],
+                        { v -> val c = if (isPin) v.filter(Char::isDigit).take(6) else v; values.value = values.value.toMutableList().also { it[i] = c }; error = null },
+                        label, secret = true, digitsOnly = isPin,
+                    )
                 }
                 error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.negative) }
             }
