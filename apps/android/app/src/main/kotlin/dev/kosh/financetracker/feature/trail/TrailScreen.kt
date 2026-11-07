@@ -2,24 +2,18 @@ package dev.kosh.financetracker.feature.trail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -35,8 +29,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.kosh.financetracker.core.model.Transaction
@@ -44,16 +40,18 @@ import dev.kosh.financetracker.core.model.TransactionDirection
 import dev.kosh.financetracker.core.model.TransactionType
 import dev.kosh.financetracker.ui.components.CategoryIconTile
 import dev.kosh.financetracker.ui.components.EmptyState
-import dev.kosh.financetracker.ui.components.KoshWordmark
-import dev.kosh.financetracker.ui.format.formatRupees
-import dev.kosh.financetracker.ui.theme.Tinward
-import dev.kosh.financetracker.ui.theme.KoshExtendedTheme
+import dev.kosh.financetracker.ui.components.ScreenHeader
+import dev.kosh.financetracker.ui.components.SegmentedTabs
+import dev.kosh.financetracker.ui.components.labelFor
+import dev.kosh.financetracker.ui.format.formatSignedMoney
 import dev.kosh.financetracker.ui.theme.Spacing
+import dev.kosh.financetracker.ui.theme.Tinward
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.util.Locale
+
+private val FILTERS = listOf(TrailFilter.ALL to "All", TrailFilter.EXPENSES to "Spent", TrailFilter.INCOME to "Income", TrailFilter.TRANSFERS to "Transfers")
 
 @Composable
 fun TrailScreen(
@@ -63,69 +61,49 @@ fun TrailScreen(
     val state by viewModel.uiState.collectAsState()
     val zone = ZoneId.systemDefault()
     val grouped = remember(state.transactions) {
-        state.transactions.groupBy { it.timestamp.atZone(zone).toLocalDate() }
+        state.transactions.groupBy { it.timestamp.atZone(zone).toLocalDate() }.toSortedMap(compareByDescending { it })
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Tinward.colors.background)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = Spacing.md),
-    ) {
-        Spacer(Modifier.height(Spacing.sm))
-        KoshWordmark()
-        Spacer(Modifier.height(Spacing.md))
-        Text("Activity", style = MaterialTheme.typography.titleLarge, color = Tinward.colors.textPrimary)
-        Text(
-            "All transactions from your bank SMS",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Tinward.colors.textSecondary,
-        )
-        Spacer(Modifier.height(Spacing.md))
-
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = viewModel::setQuery,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search descriptions, amounts or accounts", color = Tinward.colors.textSecondary) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Tinward.colors.textSecondary) },
-            singleLine = true,
-            shape = RoundedCornerShape(20.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Tinward.colors.raised.copy(alpha = 0.7f),
-                focusedContainerColor = Tinward.colors.raised.copy(alpha = 0.7f),
-                unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedBorderColor = KoshExtendedTheme.colors.accentText,
-                focusedTextColor = Tinward.colors.textPrimary,
-                unfocusedTextColor = Tinward.colors.textPrimary,
-                cursorColor = KoshExtendedTheme.colors.accentText,
-            ),
-        )
-        Spacer(Modifier.height(Spacing.sm))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            FilterChipRow(state.filter, viewModel::setFilter)
+    Column(modifier = Modifier.fillMaxSize().background(Tinward.colors.background)) {
+        ScreenHeader("Activity")
+        Column(Modifier.padding(horizontal = Spacing.md)) {
+            OutlinedTextField(
+                value = state.query,
+                onValueChange = viewModel::setQuery,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search merchant, amount or account", color = Tinward.colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Tinward.colors.textTertiary) },
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = Tinward.colors.surface,
+                    focusedContainerColor = Tinward.colors.surface,
+                    unfocusedBorderColor = Tinward.colors.divider,
+                    focusedBorderColor = Tinward.colors.accent,
+                    focusedTextColor = Tinward.colors.textPrimary,
+                    unfocusedTextColor = Tinward.colors.textPrimary,
+                    cursorColor = Tinward.colors.accent,
+                ),
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            SegmentedTabs(
+                options = FILTERS.map { it.second },
+                selectedIndex = FILTERS.indexOfFirst { it.first == state.filter },
+                onSelect = { viewModel.setFilter(FILTERS[it].first) },
+            )
         }
         Spacer(Modifier.height(Spacing.sm))
 
         if (state.transactions.isEmpty()) {
             EmptyState(
-                title = "No transactions found",
-                description = "Try a different search or filter.",
+                title = if (state.query.isBlank() && state.filter == TrailFilter.ALL) "No transactions yet" else "No transactions found",
+                description = if (state.query.isBlank() && state.filter == TrailFilter.ALL) "Allow SMS access or import a statement from Home, or add one with the + button." else "Try a different search or filter.",
+                modifier = Modifier.padding(horizontal = Spacing.lg),
             )
         } else {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = Spacing.xxl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                grouped.entries.sortedByDescending { it.key }.forEach { (date, dayTransactions) ->
-                    item { DateHeader(date) }
+            LazyColumn(contentPadding = PaddingValues(start = Spacing.md, end = Spacing.md, bottom = Spacing.xxl)) {
+                grouped.forEach { (date, dayTransactions) ->
+                    item(key = "h-$date") { DateHeader(date) }
                     items(dayTransactions, key = { it.id }) { transaction ->
                         TrailRow(transaction, onClick = { onOpenTransaction(transaction.id) })
                         HorizontalDivider(color = Tinward.colors.divider, thickness = 1.dp)
@@ -137,116 +115,67 @@ fun TrailScreen(
 }
 
 @Composable
-private fun FilterChipRow(selected: TrailFilter, onSelect: (TrailFilter) -> Unit) {
-    val options = listOf(
-        TrailFilter.ALL to "All",
-        TrailFilter.EXPENSES to "Spending",
-        TrailFilter.INCOME to "Income",
-        TrailFilter.TRANSFERS to "Transfers",
-    )
-    options.forEach { (filter, label) ->
-        val isSelected = selected == filter
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (isSelected) KoshExtendedTheme.colors.accentText.copy(alpha = 0.16f) else Tinward.colors.raised.copy(alpha = 0.6f))
-                .clickable { onSelect(filter) }
-                .padding(horizontal = Spacing.ms, vertical = Spacing.sm),
-        ) {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (isSelected) KoshExtendedTheme.colors.accentText else Tinward.colors.textSecondary,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            )
-        }
-    }
-}
-
-@Composable
 private fun DateHeader(date: LocalDate) {
-    val dayLabel = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase()
-    val formatted = date.format(DateTimeFormatter.ofPattern("d MMM").withLocale(Locale.getDefault())).uppercase()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Spacing.sm),
-    ) {
-        Text(
-            "$formatted $dayLabel",
-            style = MaterialTheme.typography.labelMedium,
-            color = Tinward.colors.textSecondary,
-        )
+    val today = LocalDate.now()
+    val text = when (date) {
+        today -> "Today"
+        today.minusDays(1) -> "Yesterday"
+        else -> date.format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.getDefault()))
     }
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = Tinward.colors.textTertiary,
+        modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs),
+    )
 }
 
 @Composable
 private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
     val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT
-    val isExpense = transaction.direction == TransactionDirection.DEBIT
+    val isDebit = transaction.direction == TransactionDirection.DEBIT
+    val merchant = transaction.merchant ?: "Unknown"
+    val subtitle = when {
+        transaction.reconciliationNote != null ->
+            if (transaction.isUnmatchedOverlap) "Unmatched record · excluded from totals" else "Purpose unconfirmed · excluded from spending"
+        transaction.type == TransactionType.CREDIT_CARD_PAYMENT -> "Card repayment · not spending or income"
+        isTransfer -> "Transfer · not spending"
+        else -> listOfNotNull(
+            transaction.category?.let { labelFor(it) }?.takeIf { it != "Uncategorized" },
+            accountLabel(transaction),
+        ).joinToString(" · ").ifBlank { "Uncategorized" }
+    }
+    val amountText = formatSignedMoney(transaction.amount, if (isTransfer) null else isDebit)
+    val time = transaction.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
+    val amountColor = when {
+        isTransfer -> Tinward.colors.textTertiary
+        isDebit -> Tinward.colors.textPrimary
+        else -> Tinward.colors.positive
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = Spacing.sm),
+            .padding(vertical = Spacing.ms)
+            .semantics(mergeDescendants = true) { contentDescription = "$merchant, $subtitle, $amountText, $time" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CategoryIconTile(transaction.category, transaction.merchant ?: "?", size = 36.dp)
+        CategoryIconTile(transaction.category, merchant, size = 40.dp)
         Spacer(Modifier.width(Spacing.ms))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                transaction.merchant ?: "Unknown",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Tinward.colors.textPrimary,
-            )
-            Text(
-                if (transaction.reconciliationNote != null) {
-                    if (transaction.isUnmatchedOverlap) "Unmatched record · Excluded from totals"
-                    else "Purpose unconfirmed · Excluded from spending"
-                } else if (transaction.type == TransactionType.CREDIT_CARD_PAYMENT) {
-                    "Credit card repayment · Not spending or income"
-                } else if (transaction.type == TransactionType.CREDIT_CARD_PURCHASE) {
-                    "Credit card purchase · ${accountSubtitle(transaction)}"
-                } else if (isTransfer) {
-                    "Transfer · Excluded from spending"
-                } else {
-                    accountSubtitle(transaction)
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = if (isTransfer) KoshExtendedTheme.colors.comparison else Tinward.colors.textSecondary,
-            )
+            Text(merchant, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
+        Spacer(Modifier.width(Spacing.sm))
         Column(horizontalAlignment = Alignment.End) {
-            val sign = if (isTransfer) "" else if (isExpense) "-" else "+"
-            val amountColor = when {
-                isTransfer -> Tinward.colors.textSecondary
-                isExpense -> KoshExtendedTheme.colors.expense
-                else -> KoshExtendedTheme.colors.income
-            }
-            Text(
-                "$sign${formatRupees(transaction.amount)}",
-                style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
-                fontWeight = FontWeight.SemiBold,
-                color = amountColor,
-            )
-            Text(
-                transaction.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("h:mm a")),
-                style = MaterialTheme.typography.labelSmall,
-                color = Tinward.colors.textSecondary,
-            )
+            Text(amountText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = amountColor)
+            Text(time, style = MaterialTheme.typography.labelSmall, color = Tinward.colors.textTertiary)
         }
     }
 }
 
-private fun accountSubtitle(transaction: Transaction): String {
-    val maskedAccount = transaction.accountSuffix?.let { suffix ->
-        val bank = transaction.bank
-        if (bank != null) "$bank ••$suffix" else "••$suffix"
-    }
-    val parts = listOfNotNull(
-        maskedAccount ?: transaction.paymentMethod?.name,
-        transaction.source.name,
-    )
-    return parts.joinToString(" · ")
+private fun accountLabel(t: Transaction): String? {
+    val masked = t.accountSuffix?.let { s -> t.bank?.let { "$it ••$s" } ?: "••$s" }
+    return masked ?: t.paymentMethod?.name?.lowercase()?.replaceFirstChar { it.uppercase() }
 }

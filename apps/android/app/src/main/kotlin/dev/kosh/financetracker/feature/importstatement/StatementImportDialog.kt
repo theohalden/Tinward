@@ -41,6 +41,7 @@ fun StatementImportDialog(
                 }
             },
             containerColor = Tinward.colors.surface,
+            tonalElevation = 0.dp,
         )
 
         is StatementImportUiState.Confirming -> AlertDialog(
@@ -72,6 +73,7 @@ fun StatementImportDialog(
                 TextButton(onClick = onDismiss) { Text("Cancel", color = Tinward.colors.textSecondary) }
             },
             containerColor = Tinward.colors.surface,
+            tonalElevation = 0.dp,
         )
 
         is StatementImportUiState.Done -> {
@@ -98,6 +100,7 @@ fun StatementImportDialog(
                     TextButton(onClick = onDismiss) { Text("OK", color = KoshExtendedTheme.colors.accentText) }
                 },
                 containerColor = Tinward.colors.surface,
+            tonalElevation = 0.dp,
             )
         }
 
@@ -109,6 +112,7 @@ fun StatementImportDialog(
                 TextButton(onClick = onDismiss) { Text("OK", color = KoshExtendedTheme.colors.accentText) }
             },
             containerColor = Tinward.colors.surface,
+            tonalElevation = 0.dp,
         )
     }
 }

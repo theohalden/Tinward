@@ -6,6 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,73 +15,93 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import dev.kosh.financetracker.data.settings.Appearance
+import dev.kosh.financetracker.feature.accounts.AccountsScreen
+import dev.kosh.financetracker.feature.addtransaction.AddTransactionScreen
 import dev.kosh.financetracker.feature.detail.TransactionDetailScreen
 import dev.kosh.financetracker.feature.insights.InsightsScreen
+import dev.kosh.financetracker.feature.onboarding.OnboardingScreen
 import dev.kosh.financetracker.feature.overview.OverviewScreen
+import dev.kosh.financetracker.feature.plan.PlanScreen
 import dev.kosh.financetracker.feature.review.ReviewScreen
+import dev.kosh.financetracker.feature.settings.SettingsScreen
 import dev.kosh.financetracker.feature.trail.TrailScreen
 import dev.kosh.financetracker.navigation.AppShellViewModel
+import dev.kosh.financetracker.navigation.FULL_SCREEN_ROUTES
 import dev.kosh.financetracker.navigation.KoshDestination
 import dev.kosh.financetracker.ui.components.KoshBottomBar
 import dev.kosh.financetracker.ui.theme.KoshTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val shell: AppShellViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Edge-to-edge with transparent bars; icon contrast follows the system light/dark
-        // setting, which is also what the Tinward theme follows.
-        enableEdgeToEdge()
         setContent {
-            KoshTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    KoshApp()
+            val appearance by shell.appearance.collectAsState()
+            val onboarded by shell.onboarded.collectAsState()
+            val dark = when (appearance) {
+                Appearance.SYSTEM -> isSystemInDarkTheme()
+                Appearance.LIGHT -> false
+                Appearance.DARK -> true
+            }
+            // Bar icon contrast follows the app theme, not just the system one.
+            DisposableEffect(dark) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT) { dark },
+                    navigationBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT) { dark },
+                )
+                onDispose { }
+            }
+            KoshTheme(darkTheme = dark) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    when (onboarded) {
+                        null -> Unit
+                        false -> OnboardingScreen(onFinish = shell::finishOnboarding)
+                        true -> KoshApp()
+                    }
                 }
             }
         }
     }
 }
 
+private fun NavHostController.navigateTab(destination: KoshDestination) {
+    navigate(destination.route) {
+        popUpTo(graph.startDestinationId) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
 @Composable
 private fun KoshApp() {
     val navController = rememberNavController()
-    val shellViewModel: AppShellViewModel = hiltViewModel()
-    val needsReviewCount by shellViewModel.needsReviewCount.collectAsState()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        // No top inset here on purpose — Home's gradient bleeds behind the status
-        // bar; each screen clears the status bar itself where it actually has
-        // content up there (see OverviewScreen). Bottom bar still reserves its
-        // own space via the padding this Scaffold hands back.
+        // Each screen clears the status bar itself (ScreenHeader / Home); the bottom
+        // bar reserves its own space via the padding this Scaffold hands back.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (currentRoute == null || currentRoute != KoshDestination.Detail.route) {
+            if (currentRoute != null && currentRoute !in FULL_SCREEN_ROUTES) {
                 KoshBottomBar(
                     currentRoute = currentRoute,
-                    reviewBadgeCount = needsReviewCount,
-                    onNavigate = { destination ->
-                        navController.navigate(destination.route) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+                    onNavigate = navController::navigateTab,
+                    onAdd = { navController.navigate(KoshDestination.Add.route) },
                 )
             }
         },
@@ -93,21 +115,20 @@ private fun KoshApp() {
                 OverviewScreen(
                     onOpenTransaction = { id -> navController.navigate(KoshDestination.Detail.createRoute(id)) },
                     onOpenReview = { navController.navigate(KoshDestination.Review.route) },
-                    onSeeAllActivity = { navController.navigate(KoshDestination.Trail.route) },
+                    onSeeAllActivity = { navController.navigateTab(KoshDestination.Trail) },
                     onOpenInsights = { navController.navigate(KoshDestination.Insights.route) },
+                    onOpenSettings = { navController.navigate(KoshDestination.Settings.route) },
                 )
             }
             composable(KoshDestination.Trail.route) {
-                TrailScreen(
-                    onOpenTransaction = { id -> navController.navigate(KoshDestination.Detail.createRoute(id)) },
-                )
+                TrailScreen(onOpenTransaction = { id -> navController.navigate(KoshDestination.Detail.createRoute(id)) })
             }
-            composable(KoshDestination.Insights.route) {
-                InsightsScreen()
-            }
-            composable(KoshDestination.Review.route) {
-                ReviewScreen()
-            }
+            composable(KoshDestination.Plan.route) { PlanScreen() }
+            composable(KoshDestination.Accounts.route) { AccountsScreen() }
+            composable(KoshDestination.Insights.route) { InsightsScreen(onBack = { navController.popBackStack() }) }
+            composable(KoshDestination.Review.route) { ReviewScreen(onBack = { navController.popBackStack() }) }
+            composable(KoshDestination.Add.route) { AddTransactionScreen(onDone = { navController.popBackStack() }) }
+            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Detail.route) {
                 TransactionDetailScreen(onBack = { navController.popBackStack() })
             }

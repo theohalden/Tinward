@@ -3,20 +3,27 @@ package dev.kosh.financetracker.navigation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.kosh.financetracker.core.finance.FinanceCalculator
-import dev.kosh.financetracker.data.repository.TransactionRepository
+import dev.kosh.financetracker.data.settings.Appearance
+import dev.kosh.financetracker.data.settings.SettingsStore
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AppShellViewModel @Inject constructor(
-    repository: TransactionRepository,
+    private val settings: SettingsStore,
 ) : ViewModel() {
+    val appearance: StateFlow<Appearance> = settings.appearance
+        .stateIn(viewModelScope, SharingStarted.Eagerly, Appearance.SYSTEM)
 
-    val needsReviewCount: StateFlow<Int> = repository.observeTransactions()
-        .map { FinanceCalculator.currentMonthUncategorizedCount(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    /** null while the first read is in flight. */
+    val onboarded: StateFlow<Boolean?> = kotlinx.coroutines.flow.flow<Boolean?> {
+        settings.onboarded.collect { emit(it) }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun finishOnboarding() {
+        viewModelScope.launch { settings.setOnboarded() }
+    }
 }

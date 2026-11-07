@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -90,6 +91,7 @@ fun OverviewScreen(
     onOpenReview: () -> Unit,
     onSeeAllActivity: () -> Unit,
     onOpenInsights: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: OverviewViewModel = hiltViewModel(),
     importViewModel: StatementImportViewModel = hiltViewModel(),
 ) {
@@ -158,6 +160,7 @@ fun OverviewScreen(
                 onOpenReview = onOpenReview,
                 onSeeAllActivity = onSeeAllActivity,
                 onOpenInsights = onOpenInsights,
+                onOpenSettings = onOpenSettings,
                 onImportClick = {
                     filePickerLauncher.launch(
                         arrayOf(
@@ -268,6 +271,7 @@ private fun HomeContent(
     onOpenReview: () -> Unit,
     onSeeAllActivity: () -> Unit,
     onOpenInsights: () -> Unit,
+    onOpenSettings: () -> Unit,
     onImportClick: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -288,6 +292,7 @@ private fun HomeContent(
                     monthsWithData = state.monthsWithData,
                     onSelectMonth = onSelectMonth,
                     onImportClick = onImportClick,
+                    onOpenSettings = onOpenSettings,
                 )
                 Spacer(Modifier.height(Spacing.lg))
                 LeftToSpendHero(
@@ -342,11 +347,16 @@ private fun HomeContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = Tinward.colors.textTertiary,
                 )
-                TextButton(onClick = onSmsScan, enabled = !isSyncing) {
-                    Text(
-                        if (isSyncing) "Scanning SMS\u2026" else "Scan SMS history",
-                        color = Tinward.colors.accentText,
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    TextButton(onClick = onSmsScan, enabled = !isSyncing) {
+                        Text(
+                            if (isSyncing) "Scanning SMS\u2026" else "Scan SMS history",
+                            color = Tinward.colors.accentText,
+                        )
+                    }
+                    TextButton(onClick = onImportClick) {
+                        Text("Import statement", color = Tinward.colors.accentText)
+                    }
                 }
                 if (syncSummary != null) {
                     Text(syncSummary, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
@@ -399,6 +409,7 @@ private fun HomeHeader(
     monthsWithData: Set<YearMonth>,
     onSelectMonth: (YearMonth) -> Unit,
     onImportClick: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -408,23 +419,26 @@ private fun HomeHeader(
         KoshWordmark()
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = onImportClick)
-                    .semantics { contentDescription = "Import bank statement" },
-                contentAlignment = Alignment.Center,
-            ) {
-                ImportIcon(tint = Tinward.colors.textSecondary)
-            }
-
             MonthSelectorPill(
                 selectedMonth = selectedMonth,
                 availableMonths = availableMonths,
                 monthsWithData = monthsWithData,
                 onSelectMonth = onSelectMonth,
             )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onOpenSettings)
+                    .semantics { contentDescription = "Settings" },
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Filled.Settings,
+                    contentDescription = null,
+                    tint = Tinward.colors.textSecondary,
+                )
+            }
         }
     }
 }
