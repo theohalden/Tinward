@@ -48,7 +48,7 @@ import dev.kosh.financetracker.ui.theme.Tinward
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val appearance by viewModel.appearance.collectAsState()
@@ -83,6 +83,8 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                         if (intent == null) exportNote = "No transactions to export yet." else { exportNote = null; context.startActivity(intent) }
                     }
                 }
+                HorizontalDivider(color = Tinward.colors.divider)
+                ActionRow("Recently deleted", "Restore transactions you removed.") { onOpenDeleted() }
                 HorizontalDivider(color = Tinward.colors.divider)
                 ActionRow("Categories", if (showCategories) "Tap to hide" else "${TransactionCategory.values().size - 1} categories") { showCategories = !showCategories }
                 if (showCategories) {

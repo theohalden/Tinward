@@ -50,6 +50,22 @@ data class AccountSummary(
  */
 object FinanceCalculator {
 
+    /**
+     * How one transaction affects spending, by category: purchases add, refunds subtract, and a
+     * split transaction contributes each of its parts. Empty for anything that is not spending.
+     */
+    internal fun spendParts(transaction: Transaction): List<Pair<TransactionCategory, BigDecimal>> {
+        val sign = when {
+            transaction.type.countsAsSpending() -> BigDecimal.ONE
+            transaction.type == TransactionType.REFUND -> BigDecimal.ONE.negate()
+            else -> return emptyList()
+        }
+        if (transaction.splits.isNotEmpty() && transaction.splits.fold(BigDecimal.ZERO) { a, s -> a + s.amount }.compareTo(transaction.amount) == 0) {
+            return transaction.splits.map { it.category to it.amount * sign }
+        }
+        return listOf((transaction.category ?: TransactionCategory.UNCATEGORIZED) to transaction.amount * sign)
+    }
+
     fun summaryForMonth(
         transactions: List<Transaction>,
         month: YearMonth,
@@ -64,6 +80,8 @@ object FinanceCalculator {
             when (transaction.type) {
                 TransactionType.INCOME -> income += transaction.amount
                 TransactionType.EXPENSE, TransactionType.CREDIT_CARD_PURCHASE -> expense += transaction.amount
+                // Money coming back for a purchase reverses it instead of counting as income.
+                TransactionType.REFUND -> expense -= transaction.amount
                 else -> Unit
             }
         }
@@ -86,11 +104,13 @@ object FinanceCalculator {
         val totalsByCategory = linkedMapOf<TransactionCategory, BigDecimal>()
         for (transaction in transactions) {
             if (transaction.reconciliationNote != null) continue
-            if (!transaction.type.countsAsSpending()) continue
             if (YearMonth.from(transaction.timestamp.atZone(zone)) != month) continue
-            val category = transaction.category ?: TransactionCategory.UNCATEGORIZED
-            totalsByCategory[category] = (totalsByCategory[category] ?: BigDecimal.ZERO) + transaction.amount
+            for ((category, amount) in spendParts(transaction)) {
+                totalsByCategory[category] = (totalsByCategory[category] ?: BigDecimal.ZERO) + amount
+            }
         }
+        // A category that was fully refunded drops out rather than showing a negative slice.
+        totalsByCategory.entries.removeAll { it.value.signum() <= 0 }
 
         val total = totalsByCategory.values.fold(BigDecimal.ZERO, BigDecimal::add)
         if (total <= BigDecimal.ZERO) return emptyList()
@@ -156,13 +176,14 @@ object FinanceCalculator {
         val totalsByDay = sortedMapOf<LocalDate, BigDecimal>()
         for (transaction in transactions) {
             if (transaction.reconciliationNote != null) continue
-            if (!transaction.type.countsAsSpending()) continue
+            val parts = spendParts(transaction)
+            if (parts.isEmpty()) continue
             val zoned = transaction.timestamp.atZone(zone)
             if (YearMonth.from(zoned) != month) continue
             val date = zoned.toLocalDate()
-            totalsByDay[date] = (totalsByDay[date] ?: BigDecimal.ZERO) + transaction.amount
+            totalsByDay[date] = (totalsByDay[date] ?: BigDecimal.ZERO) + parts.fold(BigDecimal.ZERO) { a, p -> a + p.second }
         }
-        return totalsByDay.map { (date, amount) -> DaySpend(date, amount) }
+        return totalsByDay.filterValues { it.signum() > 0 }.map { (date, amount) -> DaySpend(date, amount) }
     }
 
     /** Real per-account debit/credit activity for the month — grouped by the (bank,

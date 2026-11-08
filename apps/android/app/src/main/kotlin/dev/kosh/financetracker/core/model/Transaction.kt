@@ -110,4 +110,10 @@ data class Transaction(
     val currency: String = "INR",
     /** Shared by the two legs of a transfer between the user's own accounts. */
     val transferGroupId: String? = null,
+    /** The original purchase this refund reverses. */
+    val refundOfId: Long? = null,
+    /** When present, the amount is divided across these categories instead of using [category]. */
+    val splits: List<CategorySplit> = emptyList(),
+    /** The user's own wording for the category (e.g. "Pets"); totals still use [category]. */
+    val customLabel: String? = null,
 )

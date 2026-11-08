@@ -22,13 +22,13 @@ interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertStatementRows(transactions: List<TransactionEntity>)
 
-    @Query("SELECT * FROM transactions WHERE id NOT IN (SELECT observationId FROM transaction_source_links) ORDER BY timestampEpochMillis DESC")
+    @Query("SELECT * FROM transactions WHERE deletedAtEpochMillis IS NULL AND id NOT IN (SELECT observationId FROM transaction_source_links) ORDER BY timestampEpochMillis DESC")
     fun observeAll(): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE id NOT IN (SELECT observationId FROM transaction_source_links) ORDER BY timestampEpochMillis DESC")
+    @Query("SELECT * FROM transactions WHERE deletedAtEpochMillis IS NULL AND id NOT IN (SELECT observationId FROM transaction_source_links) ORDER BY timestampEpochMillis DESC")
     suspend fun getAll(): List<TransactionEntity>
 
-    @Query("SELECT * FROM transactions ORDER BY timestampEpochMillis DESC")
+    @Query("SELECT * FROM transactions WHERE deletedAtEpochMillis IS NULL ORDER BY timestampEpochMillis DESC")
     suspend fun getAllObservations(): List<TransactionEntity>
 
     @Query("SELECT * FROM transactions WHERE sourceMessageId = :sourceId LIMIT 1")
@@ -64,4 +64,29 @@ interface TransactionDao {
             "AND timestampEpochMillis BETWEEN :startMillis AND :endMillis",
     )
     suspend fun deleteForAccountInRange(bank: String, accountSuffix: String, startMillis: Long, endMillis: Long)
+
+    @Query("SELECT * FROM transactions WHERE deletedAtEpochMillis IS NOT NULL ORDER BY deletedAtEpochMillis DESC")
+    fun observeDeleted(): Flow<List<TransactionEntity>>
+
+    @Query("UPDATE transactions SET deletedAtEpochMillis = :at WHERE id IN (:ids)")
+    suspend fun markDeleted(ids: List<Long>, at: Long?)
+
+    @Query("SELECT id FROM transactions WHERE transferGroupId = :group")
+    suspend fun idsInGroup(group: String): List<Long>
+
+    @Query("DELETE FROM transactions WHERE deletedAtEpochMillis IS NOT NULL")
+    suspend fun purgeDeleted()
+
+    @Query("DELETE FROM transactions WHERE id IN (:ids) AND deletedAtEpochMillis IS NOT NULL")
+    suspend fun purge(ids: List<Long>)
+
+    /** Imported rows keep their original amount, date and source text; only the user's own labelling changes. */
+    @Query(
+        "UPDATE transactions SET category = :category, notes = :notes, customLabel = :customLabel, splitsJson = :splitsJson, " +
+            "accountId = :accountId, accountSuffix = :accountSuffix, bank = :bank WHERE id = :id",
+    )
+    suspend fun updateLabelling(
+        id: Long, category: TransactionCategory?, notes: String?, customLabel: String?, splitsJson: String?,
+        accountId: Long?, accountSuffix: String?, bank: String?,
+    )
 }

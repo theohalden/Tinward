@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [TransactionEntity::class, MerchantCategoryMappingEntity::class, TransactionSourceLink::class, AccountEntity::class],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -44,6 +44,16 @@ abstract class FinanceDatabase : RoomDatabase() {
                 )
                 db.execSQL("ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'INR'")
                 db.execSQL("ALTER TABLE transactions ADD COLUMN transferGroupId TEXT")
+            }
+        }
+
+        /** Soft delete, refund links, split categories and custom labels. All additive and nullable. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN refundOfId INTEGER")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN splitsJson TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN customLabel TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN deletedAtEpochMillis INTEGER")
             }
         }
     }

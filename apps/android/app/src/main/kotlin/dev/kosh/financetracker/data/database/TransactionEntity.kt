@@ -41,6 +41,11 @@ data class TransactionEntity(
     val transactionRef: String? = null,
     val currency: String = "INR",
     val transferGroupId: String? = null,
+    val refundOfId: Long? = null,
+    val splitsJson: String? = null,
+    val customLabel: String? = null,
+    /** Set when the user deletes it. Kept (not erased) so Undo works and a rescan cannot resurrect it. */
+    val deletedAtEpochMillis: Long? = null,
 )
 
 fun TransactionEntity.toDomain(): Transaction = Transaction(
@@ -66,6 +71,9 @@ fun TransactionEntity.toDomain(): Transaction = Transaction(
     transactionRef = transactionRef,
     currency = currency,
     transferGroupId = transferGroupId,
+    refundOfId = refundOfId,
+    splits = dev.kosh.financetracker.core.model.SplitCodec.decode(splitsJson),
+    customLabel = customLabel,
 )
 
 fun Transaction.toEntity(): TransactionEntity = TransactionEntity(
@@ -89,5 +97,7 @@ fun Transaction.toEntity(): TransactionEntity = TransactionEntity(
     createdAtEpochMillis = createdAt.toEpochMilli(),
     balanceAfter = balanceAfter,
     transactionRef = transactionRef,    currency = currency,
-    transferGroupId = transferGroupId,
+    transferGroupId = transferGroupId,    refundOfId = refundOfId,
+    splitsJson = dev.kosh.financetracker.core.model.SplitCodec.encode(splits),
+    customLabel = customLabel,
 )

@@ -30,10 +30,10 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 | Budget | P | One monthly income, fixed-expense list, 50/30/20 breakdown. No per-category budgets, no rollover. |
 | Accounts | V | **Slice 2.** Real `accounts` table (bank, cash, wallet, other). Create, edit, archive/restore, reorder (repository), opening balance, per-account currency, transfers as two linked legs, balance correction as an ADJUSTMENT entry. Existing accounts discovered from messages on first unlock. Verified on device: migration 8→9 on real data, discovery, correct balance, pay card. |
 | Cards (debit/credit) | P | **Slice 2.** Credit card: owed amount, limit, available, utilisation %, statement and due day, payments as transfers (not spending). Debit card linked to a bank account, no balance of its own. Verified on device: credit card creation and payment. **Missing:** due-date reminders, SMS-to-card matching beyond last-four, debit-card flow on device. |
-| Categories | P | Built-in set and merchant-to-category mapping entity. No custom categories. |
+| Categories | P | Built-in set and merchant-to-category mapping. **Slice 3 adds custom labels** (the user's own wording on a transaction, searchable, reusable) that sit on top of a built-in category; totals, budgets and rules still use the built-in category. Fully custom categories with their own totals are not built: the category enum is used by charts, colours and the 50/30/20 rules and needs a wider change. |
 | Currency | P | **Slice 2.** Currency on every transaction and account; main-currency setting; Home, Insights and Plan total in the main currency only; transfers between currencies refused; no FX. **Missing:** currency step in onboarding, non-India SMS parsing (Slice 5). |
 | Recurring bills, reminders, goals | M | Fixed expenses are a static list, not schedules. |
-| Search, filter, split | P | Verify; split is not supported by the model. |
+| Search, filter, split | V | **Slice 3.** Search covers merchant, note, label, category and amount. Filters: type, period, account, category (a debit card's spending counts under its bank). Split categories (stored as text, validated to add up, counted by part in totals). Verified on device. |
 | App lock (PIN/biometric) | P | **Slice 1.** Mandatory PIN (6+ digits or passphrase, weak PINs rejected), PBKDF2-SHA256 310k + AES-GCM key wrap, escalating throttle (never wipes), lock on cold start and after auto-lock timeout, `FLAG_SECURE` on lock screens. Verified on device: setup, weak-PIN rejection, wrong PIN, unlock, auto-lock at 36s, no lock at 5s. **Biometric unlock is built but unverified** (needs a person to enrol/touch the sensor). |
 | Encryption at rest | V | **Slice 1.** SQLCipher under Room (raw 256-bit key); budget values AES-GCM under the same key. Existing plaintext DB converted with row-count verification before the plaintext is shredded; verified on device (file header no longer `SQLite format 3`, same figures after). |
 | Backup / restore | V | **Slice 1.** User-initiated `.twbak` (AES-256-GCM, PBKDF2 passphrase separate from the PIN, header authenticated). Restore re-checks the PIN, validates the database before touching anything, rolls back on failure, relaunches the app. Verified on device: create, wrong passphrase rejected, restore replaced a changed value, app relaunched, PIN works afterwards. Cross-device restore is by design but **untested on a second phone**. |
@@ -93,3 +93,21 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 **Tests.** 152 unit tests pass (17 ledger, 4 bootstrap, the rest earlier).
 
 **Not verified / open.** Debit-card creation and spending on device; editing an account on device; reorder UI (repository only); transfer between two currencies is refused in code and tested but not shown on device; the migration was exercised on one real database (restored v8 backup) and has no automated migration test; large histories; reminders for card due dates (Slice 4); non-India SMS parsing and raw-SMS retention (Slice 5). The Add-transaction account picker compiles but was not exercised on device.
+
+## 8. Slice 3 record: transactions (2026-11-08)
+
+**Schema (v9 → v10, `MIGRATION_9_10`).** Four nullable columns on `transactions`: `deletedAtEpochMillis` (soft delete), `refundOfId`, `splitsJson`, `customLabel`. No data is rewritten.
+
+**Edit.** Entries you typed in: everything editable. Imported (SMS, statement) rows: amount, date and source text are never changed; only category, note, label, split and account. Transfer legs, adjustments and card payments are labelling-only because their legs are linked.
+
+**Delete.** Soft delete with an Undo snackbar and a "Recently deleted" list (restore, or empty for good). Both legs of a transfer go together. Imported rows are kept as tombstones so a rescan cannot resurrect them. Emptying the list lets a rescan re-import a deleted bank SMS (stated in the dialog).
+
+**Refunds.** A refund is a linked `REFUND` entry (`refundOfId`). It reduces the month's spending and its category (not income), cannot exceed what was paid, and scales a split proportionally. Rule applies to every `REFUND` row, including any produced by the SMS classifier.
+
+**Bug fixed.** The automatic income and transfer reclassification also ran over manually added entries (a manual "Received" without a salary-like description was demoted to Unknown). Manual rows are now exempt.
+
+**Bug fixed.** Editing an entry on an archived account silently detached it; the account now stays selectable.
+
+**Tests.** 168 unit tests pass (9 refund/split, 7 filter, earlier suites).
+
+**Not verified / open.** The v9→v10 migration was exercised only on one real database and has no automated test. Full custom categories (see above). Custom labels are not yet a managed list (no rename or delete). Search is a substring match, not fuzzy. A split on an imported row was not exercised on device. The ₹30 refund created before the proportional-split fix still carries the original's full split on the Preview app (totals ignore a mismatched split).

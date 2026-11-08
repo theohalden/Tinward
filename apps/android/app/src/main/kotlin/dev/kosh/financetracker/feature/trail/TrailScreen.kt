@@ -24,6 +24,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -60,6 +63,7 @@ fun TrailScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val zone = ZoneId.systemDefault()
+    var showFilters by remember { androidx.compose.runtime.mutableStateOf(false) }
     val grouped = remember(state.transactions) {
         state.transactions.groupBy { it.timestamp.atZone(zone).toLocalDate() }.toSortedMap(compareByDescending { it })
     }
@@ -91,13 +95,26 @@ fun TrailScreen(
                 selectedIndex = FILTERS.indexOfFirst { it.first == state.filter },
                 onSelect = { viewModel.setFilter(FILTERS[it].first) },
             )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { showFilters = true }) {
+                    Text(
+                        if (state.filters.activeExtras > 0) "Filters (${state.filters.activeExtras})" else "Filters",
+                        color = Tinward.colors.accentText, style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                Text(
+                    if (state.isFiltered) "${state.transactions.size} found" else "",
+                    style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary,
+                )
+            }
         }
         Spacer(Modifier.height(Spacing.sm))
+        if (showFilters) FilterDialog(state, viewModel) { showFilters = false }
 
         if (state.transactions.isEmpty()) {
             EmptyState(
-                title = if (state.query.isBlank() && state.filter == TrailFilter.ALL) "No transactions yet" else "No transactions found",
-                description = if (state.query.isBlank() && state.filter == TrailFilter.ALL) "Allow SMS access or import a statement from Home, or add one with the + button." else "Try a different search or filter.",
+                title = if (!state.isFiltered) "No transactions yet" else "No transactions found",
+                description = if (!state.isFiltered) "Allow SMS access or import a statement from Home, or add one with the + button." else "Try a different search or filter.",
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
         } else {
@@ -112,6 +129,35 @@ fun TrailScreen(
             }
         }
     }
+}
+
+@Composable
+private fun FilterDialog(state: TrailUiState, viewModel: TrailViewModel, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss, tonalElevation = 0.dp, containerColor = Tinward.colors.surface,
+        title = { Text("Filters", color = Tinward.colors.textPrimary) },
+        text = {
+            Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("Period", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+                dev.kosh.financetracker.ui.components.ChoiceChips(Period.values().toList(), state.filters.period, { it.label }, viewModel::setPeriod)
+                if (state.accounts.isNotEmpty()) {
+                    Text("Account", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+                    dev.kosh.financetracker.ui.components.ChoiceChips(
+                        state.accounts.filter { !it.archived }, state.accounts.firstOrNull { it.id == state.filters.accountId }, { it.name },
+                        { a -> viewModel.setAccount(if (a.id == state.filters.accountId) null else a.id) },
+                    )
+                }
+                Text("Category", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+                dev.kosh.financetracker.ui.components.ChoiceChips(
+                    dev.kosh.financetracker.core.model.TransactionCategory.values().filter { it != dev.kosh.financetracker.core.model.TransactionCategory.UNCATEGORIZED },
+                    state.filters.category, { dev.kosh.financetracker.ui.components.labelFor(it) },
+                    { c -> viewModel.setCategory(if (c == state.filters.category) null else c) },
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done", color = Tinward.colors.accentText) } },
+        dismissButton = { TextButton(onClick = { viewModel.clearExtras() }) { Text("Clear", color = Tinward.colors.textSecondary) } },
+    )
 }
 
 @Composable

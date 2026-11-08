@@ -60,6 +60,27 @@ interface TransactionRepository {
     /** Adds statement observations without deleting existing records. Reference-backed
      * SMS matches are retained as linked evidence and counted once. */
     suspend fun importStatement(transactions: List<StatementTransaction>): List<StatementImportResult.Imported>
+
+    /** Full edit of an entry the user added themselves. */
+    suspend fun updateManual(transaction: Transaction)
+
+    /**
+     * Edit for any row. Imported rows keep their original amount, date and source text; only the
+     * user's own labelling (category, note, custom label, splits, account) changes.
+     */
+    suspend fun updateLabelling(
+        id: Long, category: TransactionCategory?, notes: String?, customLabel: String?,
+        splits: List<dev.kosh.financetracker.core.model.CategorySplit>, account: dev.kosh.financetracker.core.model.Account?,
+    )
+
+    /** Soft delete. Both legs of a transfer go together. Returns the ids to pass to [restore]. */
+    suspend fun delete(id: Long): List<Long>
+    suspend fun restore(ids: List<Long>)
+    fun observeDeleted(): Flow<List<Transaction>>
+    suspend fun purgeDeleted()
+
+    /** Records money coming back for an earlier purchase, linked to it. Fails if it would refund more than was paid. */
+    suspend fun addRefund(originalId: Long, amount: java.math.BigDecimal, at: Instant, note: String?): Result<Long>
 }
 
 private fun normalizeMerchant(merchant: String?): String? =
@@ -106,7 +127,8 @@ class RoomTransactionRepository @Inject constructor(
     }
 
     override suspend fun reconcileTransfers() {
-        val all = CardTransactionClassifier.projectAll(dao.getAll().map { it.toDomain() })
+        // Entries the user typed in are never reclassified behind their back.
+        val all = CardTransactionClassifier.projectAll(dao.getAll().map { it.toDomain() }.filter { it.source != TransactionSource.MANUAL })
         val transferIds = TransferDetector.findTransferPairs(all)
         if (transferIds.isNotEmpty()) {
             dao.updateType(transferIds.toList(), TransactionType.TRANSFER)
@@ -119,6 +141,7 @@ class RoomTransactionRepository @Inject constructor(
         val toUnknown = mutableListOf<Long>()
 
         for (transaction in all) {
+            if (transaction.source == TransactionSource.MANUAL) continue
             if (transaction.direction != TransactionDirection.CREDIT) continue
             if (transaction.type != TransactionType.INCOME && transaction.type != TransactionType.UNKNOWN) continue
 
@@ -178,6 +201,62 @@ class RoomTransactionRepository @Inject constructor(
         if (sameMerchantIds.isNotEmpty()) {
             dao.updateCategories(sameMerchantIds, category)
         }
+    }
+
+    override suspend fun updateManual(transaction: Transaction) {
+        val existing = dao.getByIdOnce(transaction.id) ?: return
+        require(existing.source == TransactionSource.MANUAL) { "Only entries you added can be fully edited." }
+        dao.insert(transaction.toEntity().copy(deletedAtEpochMillis = null, createdAtEpochMillis = existing.createdAtEpochMillis))
+    }
+
+    override suspend fun updateLabelling(
+        id: Long, category: TransactionCategory?, notes: String?, customLabel: String?,
+        splits: List<dev.kosh.financetracker.core.model.CategorySplit>, account: dev.kosh.financetracker.core.model.Account?,
+    ) {
+        val existing = dao.getByIdOnce(id) ?: return
+        // Imported evidence keeps its own bank/suffix unless the user picked an account explicitly.
+        dao.updateLabelling(
+            id, category, notes?.trim()?.ifBlank { null }, customLabel?.trim()?.ifBlank { null },
+            dev.kosh.financetracker.core.model.SplitCodec.encode(splits),
+            account?.id ?: existing.accountId,
+            if (account != null) account.last4 else existing.accountSuffix,
+            if (account != null) account.institution else existing.bank,
+        )
+    }
+
+    override suspend fun delete(id: Long): List<Long> = database.withTransaction {
+        val row = dao.getByIdOnce(id) ?: return@withTransaction emptyList()
+        val ids = row.transferGroupId?.let { dao.idsInGroup(it) }?.takeIf { it.isNotEmpty() } ?: listOf(id)
+        dao.markDeleted(ids, Instant.now().toEpochMilli())
+        ids
+    }
+
+    override suspend fun restore(ids: List<Long>) = dao.markDeleted(ids, null)
+
+    override fun observeDeleted(): Flow<List<Transaction>> = dao.observeDeleted().map { rows -> rows.map { it.toDomain() } }
+
+    override suspend fun purgeDeleted() = dao.purgeDeleted()
+
+    override suspend fun addRefund(originalId: Long, amount: java.math.BigDecimal, at: Instant, note: String?): Result<Long> = database.withTransaction {
+        val original = dao.getByIdOnce(originalId)?.toDomain() ?: return@withTransaction Result.failure(IllegalArgumentException("The original purchase no longer exists."))
+        if (original.direction != TransactionDirection.DEBIT) return@withTransaction Result.failure(IllegalArgumentException("Only a purchase or payment can be refunded."))
+        if (amount.signum() <= 0) return@withTransaction Result.failure(IllegalArgumentException("Enter an amount above zero."))
+        val already = dao.getAll().map { it.toDomain() }.filter { it.refundOfId == originalId }.fold(java.math.BigDecimal.ZERO) { a, t -> a + t.amount }
+        if (already + amount > original.amount) {
+            return@withTransaction Result.failure(IllegalArgumentException("That is more than was paid. ${original.amount - already} can still be refunded."))
+        }
+        val name = original.merchant ?: "purchase"
+        val id = dao.insert(
+            original.copy(
+                id = 0, timestamp = at, amount = amount, direction = TransactionDirection.CREDIT, type = TransactionType.REFUND,
+                merchant = "Refund: $name", rawMerchant = "Refund: $name", source = TransactionSource.MANUAL,
+                sourceMessageId = null, rawSourceText = null, confidence = 1.0, notes = note, createdAt = Instant.now(),
+                balanceAfter = null, transactionRef = null, reconciliationNote = null, isUnmatchedOverlap = false,
+                transferGroupId = null, refundOfId = originalId,
+                splits = dev.kosh.financetracker.core.model.SplitCodec.scale(original.splits, original.amount, amount),
+            ).toEntity(),
+        )
+        Result.success(id)
     }
 
     override suspend fun importStatement(transactions: List<StatementTransaction>): List<StatementImportResult.Imported> {

@@ -131,7 +131,17 @@ private fun KoshApp() {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
+    val snackbar = androidx.compose.runtime.remember { androidx.compose.material3.SnackbarHostState() }
+    val undoVm: dev.kosh.financetracker.feature.undo.UndoViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        dev.kosh.financetracker.feature.undo.UndoBus.events.collect { e ->
+            val r = snackbar.showSnackbar(e.message, actionLabel = "Undo", duration = androidx.compose.material3.SnackbarDuration.Long)
+            if (r == androidx.compose.material3.SnackbarResult.ActionPerformed) undoVm.restore(e.ids)
+        }
+    }
+
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
         // Each screen clears the status bar itself (ScreenHeader / Home); the bottom
         // bar reserves its own space via the padding this Scaffold hands back.
@@ -188,9 +198,17 @@ private fun KoshApp() {
             composable(KoshDestination.Insights.route) { InsightsScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Review.route) { ReviewScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Add.route) { AddTransactionScreen(onDone = { navController.popBackStack() }) }
-            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }) }
+            composable(
+                KoshDestination.Edit.route,
+                arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
+            ) { AddTransactionScreen(onDone = { navController.popBackStack() }) }
+            composable(KoshDestination.Deleted.route) { dev.kosh.financetracker.feature.deleted.DeletedScreen(onBack = { navController.popBackStack() }) }
+            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }, onOpenDeleted = { navController.navigate(KoshDestination.Deleted.route) }) }
             composable(KoshDestination.Detail.route) {
-                TransactionDetailScreen(onBack = { navController.popBackStack() })
+                TransactionDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onEdit = { id -> navController.navigate(KoshDestination.Edit.createRoute(id)) },
+                )
             }
         }
     }

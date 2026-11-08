@@ -42,6 +42,8 @@ import dev.kosh.financetracker.ui.components.SecondaryButton
 import dev.kosh.financetracker.ui.components.REVIEW_PICKER_CATEGORIES
 import dev.kosh.financetracker.ui.components.labelFor
 import dev.kosh.financetracker.ui.format.formatSignedMoney
+import dev.kosh.financetracker.ui.format.formatMoney
+import dev.kosh.financetracker.core.model.countsAsSpending
 import dev.kosh.financetracker.ui.theme.Spacing
 import dev.kosh.financetracker.ui.theme.Tinward
 import java.time.ZoneId
@@ -50,9 +52,14 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun TransactionDetailScreen(
     onBack: () -> Unit,
+    onEdit: (Long) -> Unit,
     viewModel: TransactionDetailViewModel = hiltViewModel(),
 ) {
     val transaction by viewModel.transaction.collectAsState()
+    val extras by viewModel.extras.collectAsState()
+    val message by viewModel.message.collectAsState()
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var refunding by rememberSaveable { mutableStateOf(false) }
     var editingCategory by rememberSaveable { mutableStateOf(false) }
     var showStory by rememberSaveable { mutableStateOf(false) }
 
@@ -66,7 +73,7 @@ fun TransactionDetailScreen(
             Hero(current)
 
             KoshCard {
-                val account = current.accountSuffix?.let { "${current.bank ?: "Account"} ••$it" } ?: "Unknown"
+                val account = extras.accountName ?: current.accountSuffix?.let { "${current.bank ?: "Account"} ••$it" } ?: "Unknown"
                 FieldRow("Type", current.type.displayLabel())
                 Divider()
                 FieldRow("Category", labelFor(current.category ?: TransactionCategory.UNCATEGORIZED))
@@ -76,6 +83,24 @@ fun TransactionDetailScreen(
                 Divider()
                 FieldRow("Source", when (current.source) { dev.kosh.financetracker.core.model.TransactionSource.SMS -> "Bank SMS"; dev.kosh.financetracker.core.model.TransactionSource.STATEMENT -> "Bank statement"; dev.kosh.financetracker.core.model.TransactionSource.MANUAL -> "Added by you"; else -> "Notification" })
                 current.reconciliationNote?.let { Divider(); FieldRow("Reconciliation", it) }
+                current.customLabel?.let { Divider(); FieldRow("Your label", it) }
+                current.notes?.takeIf { current.source == dev.kosh.financetracker.core.model.TransactionSource.MANUAL || current.refundOfId != null || it.isNotBlank() }?.let { n -> Divider(); FieldRow("Note", n) }
+                if (current.splits.isNotEmpty()) {
+                    Divider()
+                    FieldRow("Split", current.splits.joinToString(", ") { "${labelFor(it.category)} ${formatMoney(it.amount, currencyCode = current.currency)}" })
+                }
+                extras.refundOfName?.let { Divider(); FieldRow("Refund of", it) }
+                if (extras.refunded.signum() > 0) { Divider(); FieldRow("Refunded", formatMoney(extras.refunded, currencyCode = current.currency)) }
+            }
+            message?.let {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.accentText, modifier = Modifier.weight(1f))
+                    androidx.compose.material3.TextButton(onClick = viewModel::clearMessage) { Text("Dismiss", color = Tinward.colors.textSecondary) }
+                }
+            }
+            SecondaryButton("Edit details", onClick = { onEdit(current.id) }, modifier = Modifier.fillMaxWidth())
+            if (current.direction == TransactionDirection.DEBIT && current.type.countsAsSpending()) {
+                SecondaryButton("Record a refund", onClick = { refunding = true }, modifier = Modifier.fillMaxWidth())
             }
 
             SecondaryButton(if (editingCategory) "Close" else "Change category", onClick = { editingCategory = !editingCategory }, modifier = Modifier.fillMaxWidth())
@@ -111,9 +136,41 @@ fun TransactionDetailScreen(
                     }
                 }
             }
+            SecondaryButton("Delete", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(Spacing.xl))
         }
     }
+
+    if (confirmDelete) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { confirmDelete = false }, tonalElevation = 0.dp, containerColor = Tinward.colors.surface,
+        title = { Text("Delete this transaction?", color = Tinward.colors.textPrimary) },
+        text = { Text("It leaves your totals now. You can undo right after, or restore it later from Settings \u2192 Recently deleted.", color = Tinward.colors.textSecondary) },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { confirmDelete = false; viewModel.delete(onBack) }) { Text("Delete", color = Tinward.colors.negative) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { confirmDelete = false }) { Text("Cancel", color = Tinward.colors.textSecondary) } },
+    )
+    val shown = transaction
+    if (refunding && shown != null) RefundDialog(shown, extras.refunded, onDismiss = { refunding = false }) { amount, note -> refunding = false; viewModel.refund(amount, note) }
+}
+
+@Composable
+private fun RefundDialog(t: Transaction, alreadyRefunded: java.math.BigDecimal, onDismiss: () -> Unit, onConfirm: (java.math.BigDecimal, String?) -> Unit) {
+    val left = t.amount - alreadyRefunded
+    var amountText by rememberSaveable { mutableStateOf(left.toPlainString()) }
+    var note by rememberSaveable { mutableStateOf("") }
+    val amount = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 && it <= left }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss, tonalElevation = 0.dp, containerColor = Tinward.colors.surface,
+        title = { Text("Record a refund", color = Tinward.colors.textPrimary) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("Up to ${formatMoney(left, currencyCode = t.currency)} can still be refunded. It reverses the spending in its category and is not counted as income.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+                dev.kosh.financetracker.ui.components.TinwardTextField(amountText, { v -> amountText = v.filter { it.isDigit() || it == '.' } }, "Refund amount", numeric = true)
+                dev.kosh.financetracker.ui.components.TinwardTextField(note, { note = it.take(100) }, "Note (optional)")
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(enabled = amount != null, onClick = { onConfirm(amount!!, note.trim().ifBlank { null }) }) { Text("Record", color = Tinward.colors.accentText) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel", color = Tinward.colors.textSecondary) } },
+    )
 }
 
 @Composable
