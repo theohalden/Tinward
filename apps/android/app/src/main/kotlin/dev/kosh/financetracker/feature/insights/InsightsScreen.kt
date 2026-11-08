@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -84,6 +85,10 @@ fun InsightsScreen(
                     }
                 }
             }
+            item { SectionLabel("Last 6 months") }
+            item { TrendCard(state) }
+            state.comparison?.let { c -> item { ComparisonCard(c, state.currency, state.selectedMonth) } }
+            state.stand?.let { st -> item { StandingCard(st, state.currency) } }
             if (state.categoryBreakdown.isNotEmpty()) {
                 item { SectionLabel("Where it went") }
                 item {
@@ -156,6 +161,109 @@ private fun CategoryRow(slice: CategorySlice) {
         Spacer(Modifier.height(Spacing.xs))
         Box(Modifier.fillMaxWidth().height(4.dp).background(Tinward.colors.track, RoundedCornerShape(2.dp))) {
             Box(Modifier.fillMaxWidth(slice.fraction.coerceIn(0f, 1f)).height(4.dp).background(color, RoundedCornerShape(2.dp)))
+        }
+    }
+}
+
+@Composable
+private fun TrendCard(state: InsightsUiState) {
+    val max = state.trend.maxOfOrNull { maxOf(it.spent, it.income) }?.takeIf { it.signum() > 0 }
+    KoshCard {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            if (max == null) {
+                Text("No spending or income in these months yet.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+            } else {
+                val spentColor = Tinward.colors.accent
+                val incomeColor = Tinward.colors.positive
+                Row(Modifier.fillMaxWidth().height(140.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                    state.trend.forEach { p ->
+                        val selected = p.month == state.selectedMonth
+                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row(Modifier.height(116.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Bar(p.income.toFloat() / max.toFloat(), incomeColor.copy(alpha = if (selected) 1f else 0.45f))
+                                Bar(p.spent.toFloat() / max.toFloat(), spentColor.copy(alpha = if (selected) 1f else 0.55f))
+                            }
+                            Text(
+                                p.month.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()),
+                                style = MaterialTheme.typography.labelSmall, color = if (selected) Tinward.colors.textPrimary else Tinward.colors.textTertiary,
+                            )
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Legend(Tinward.colors.positive, "Income"); Legend(Tinward.colors.accent, "Spent")
+                }
+                state.averageSpent?.let { Text("Average spent in months with activity: ${formatMoney(it, currencyCode = state.currency)}", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Bar(fraction: Float, color: androidx.compose.ui.graphics.Color) {
+    // No bar at all for a month with nothing in it, so an empty month reads as empty.
+    if (fraction > 0f) Box(Modifier.width(10.dp).fillMaxHeight(fraction.coerceIn(0.02f, 1f)).background(color, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)))
+    else Box(Modifier.width(10.dp))
+}
+
+@Composable
+private fun Legend(color: androidx.compose.ui.graphics.Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).background(color, RoundedCornerShape(2.dp)))
+        Spacer(Modifier.width(Spacing.xs))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Tinward.colors.textTertiary)
+    }
+}
+
+@Composable
+private fun ComparisonCard(c: dev.kosh.financetracker.core.finance.MonthComparison, currency: String, month: java.time.YearMonth) {
+    val prev = month.minusMonths(1).month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())
+    KoshCard {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text("Compared with $prev", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+            CompareRow("Spent", c.spent, c.previousSpent, c.spentChangePercent, currency, upIsBad = true)
+            CompareRow("Income", c.income, c.previousIncome, c.incomeChangePercent, currency, upIsBad = false)
+        }
+    }
+}
+
+@Composable
+private fun CompareRow(label: String, now: java.math.BigDecimal, before: java.math.BigDecimal, pct: Int?, currency: String, upIsBad: Boolean) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+            Text("was ${formatMoney(before, currencyCode = currency)}", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(formatMoney(now, currencyCode = currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
+            Text(
+                pct?.let { "${if (it > 0) "\u25B2" else if (it < 0) "\u25BC" else "\u2013"} ${abs(it)}%" } ?: "no earlier month to compare",
+                style = MaterialTheme.typography.labelSmall,
+                color = when { pct == null || pct == 0 -> Tinward.colors.textTertiary; (pct > 0) == upIsBad -> Tinward.colors.negative; else -> Tinward.colors.positive },
+            )
+        }
+    }
+}
+
+@Composable
+private fun StandingCard(st: Standing, currency: String) {
+    KoshCard {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text("Where you stand today", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+            Text(formatMoney(st.net, currencyCode = currency), style = MaterialTheme.typography.displaySmall, color = if (st.net.signum() < 0) Tinward.colors.negative else Tinward.colors.textPrimary)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Tracked accounts", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+                Text(formatMoney(st.assets, currencyCode = currency), style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(if (st.cardDebt.signum() < 0) "Card credit" else "Card debt", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+                Text((if (st.cardDebt.signum() > 0) "\u2212 " else "+ ") + formatMoney(st.cardDebt.abs(), currencyCode = currency), style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary)
+            }
+            Text(
+                "Calculated from your records, so an estimate, not a live bank balance." +
+                    if (st.accountsWithoutBalance > 0) " ${st.accountsWithoutBalance} account${if (st.accountsWithoutBalance == 1) " shows" else "s show"} zero; set the real balance in Accounts." else "",
+                style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
+            )
         }
     }
 }

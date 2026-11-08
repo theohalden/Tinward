@@ -22,7 +22,7 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 
 | Area | Status | Notes |
 |---|---|---|
-| Home, Activity, Plan, Accounts, Insights, Review, Detail, Settings, Add, onboarding (3 pages) | V | Tinward theme, light and dark, Appearance setting |
+| Home, Activity, Plan, Accounts, Insights, Review, Detail, Settings, Add, onboarding (3 pages) | V | Tinward theme, light and dark, Appearance setting. **Slice 6:** Home shows real tracked accounts and cards (not message-derived summaries), bills and card payments due in two weeks, available to spend; Insights adds a 6-month income/spend chart, comparison with the previous month and a tracked net-worth card. |
 | Home uses Plan income; Coming up from fixed costs | V | commit `941805a` |
 | SMS scan + live receiver | P | **Slice 5.** India parsers (HDFC, Kotak, Slice, UPI) unchanged, plus a generic English-language parser for other countries and currencies (28 representative templates across US, Canada, UK, euro area, Singapore, UAE, Australia, NZ, Japan, India). Not captured from real banks, so this shows pattern coverage, not support for any named bank. Non-English messages are not parsed. OTP, offers, scheduled, failed and balance-only messages are left unread. Scan report (counts only) in Settings. |
 | Statement import (HDFC xls, Kotak csv, Slice xlsx) | V | Bank-specific importers unchanged. **Slice 5 adds a general CSV import:** any bank's CSV, preamble skipped, columns guessed (English plus German, French, Spanish, Italian, Portuguese, Dutch headers) and adjustable, one amount column or debit/credit columns, sign convention, date format and decimal separator detected and adjustable, target account, a preview with new / already-there / unreadable counts, duplicate protection. Verified on device with a US-style and a German-style file. Excel files (.xls/.xlsx) other than the three supported banks are not read. |
@@ -139,3 +139,15 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 **Tests.** 240 unit tests pass (28 SMS fixtures, 21 CSV, earlier suites). Verified on device: preamble and column auto-detection, the day-first/month-first ambiguity warning with a visibly wrong preview until corrected, duplicate detection against a linked debit card, bad rows reported with line numbers, re-import finding everything, comma-decimal and semicolon file understood automatically, imported entry shown as "Imported file".
 
 **Not verified / open.** No real bank SMS from outside India was available, so the global parser is unproven against real wording. The live SMS path (receiver) with the dollar setting was compiled but not exercised. The 11→11 schema is unchanged (no migration in this slice). Matching an SMS against a CSV row is not attempted.
+
+## 11. Slice 6 record: Home and Insights on real data (2026-11-08)
+
+**Home.** The accounts strip now comes from real accounts and cards (tracked balance, card owed and available), tapping opens the account, with "tracked from your messages and entries, not live bank balances" beneath. "Coming up" merges bills and credit card payments due in the next two weeks. The card due day also feeds the daily reminder cache (three days' notice, generic text). The old message-derived account cards were removed.
+
+**"Left to spend" fix.** Found on the phone: a single imported salary replaced the user's planned income as the basis, turning a healthy month into "over by ₹41,468". The basis is now the planned income, unless actual income is higher (`IncomeBasisRule`, tested); with no plan, recorded income is used. The caption says how much has been received so far.
+
+**Insights.** Six months ending at the selected month (income and spending bars, empty months show nothing), the average over active months, this month against last (a percentage only when the earlier month has something to compare with), and where tracked money stands (accounts, card debt or credit, net) with the usual "estimate, not a bank balance" wording. Everything is in the main currency only. Deliberately not built, because the product spec reserves them for Plus: merchant comparisons, spending velocity, category acceleration, savings rate.
+
+**Tests.** 251 unit tests pass (6 trend/comparison/card-due, 5 income basis, earlier suites). Verified on device: Home accounts strip, Insights chart, comparison and standing cards, the hero fix.
+
+**Not verified / open.** Card payment due rows on Home and the reminder entry for a card were verified by unit test only (the test card has no due day and is in credit). Dark mode and large-font layouts of the new cards were not checked. The chart has no tap-to-inspect and no accessibility description beyond text. Insights has no per-account filter.

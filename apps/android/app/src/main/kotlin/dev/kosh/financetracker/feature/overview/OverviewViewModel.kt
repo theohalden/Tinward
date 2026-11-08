@@ -32,6 +32,9 @@ import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
 
+/** Something due soon: a bill or a credit card payment. */
+data class Upcoming(val name: String, val date: java.time.LocalDate, val amount: BigDecimal, val currency: String, val isCard: Boolean)
+
 data class OverviewUiState(
     val selectedMonth: YearMonth = YearMonth.now(),
     val availableMonths: List<YearMonth> = emptyList(),
@@ -46,8 +49,10 @@ data class OverviewUiState(
     val hasAnyData: Boolean = false,
     /** Income declared in Plan; used when no income is recorded for the month. */
     val plannedIncome: BigDecimal? = null,
-    /** Unpaid bills in the next two weeks. */
-    val upcomingBills: List<Occurrence> = emptyList(),
+    /** Bills and credit card payments in the next two weeks, soonest first. */
+    val upcoming: List<Upcoming> = emptyList(),
+    /** Real accounts and cards with their tracked position. */
+    val positions: List<dev.kosh.financetracker.core.finance.AccountPosition> = emptyList(),
     val available: AvailableToSpend? = null,
 )
 
@@ -73,6 +78,7 @@ class OverviewViewModel @Inject constructor(
     ) { allTransactions, explicitMonth, plannedIncome, base, plan ->
         val (recurring, accountList, goals) = plan
         val today = java.time.LocalDate.now()
+        val positionsAll = AccountLedger.positions(accountList, allTransactions)
         val pendingAll = recurring.flatMap { Recurrence.pending(it, allTransactions, today, today.plusDays(45), zone) }.sortedBy { it.date }
         // Totals never mix currencies: Home shows the base currency only.
         val transactions = allTransactions.filter { it.currency == base }
@@ -99,9 +105,15 @@ class OverviewViewModel @Inject constructor(
             needsReviewCount = FinanceCalculator.uncategorizedCountForMonth(transactions, month, zone),
             hasAnyData = transactions.isNotEmpty(),
             plannedIncome = plannedIncome?.takeIf { it.signum() > 0 },
-            upcomingBills = pendingAll.filter { it.item.kind == RecurringKind.BILL && it.item.currency == base && !it.date.isAfter(today.plusDays(14)) },
+            upcoming = (
+                pendingAll.filter { it.item.kind == RecurringKind.BILL && it.item.currency == base && !it.date.isAfter(today.plusDays(14)) }
+                    .map { Upcoming(it.item.name, it.date, it.item.amount, it.item.currency, isCard = false) } +
+                    dev.kosh.financetracker.core.finance.CardDues.upcoming(positionsAll, today, 14).filter { it.account.currency == base }
+                        .map { Upcoming("${it.account.name} payment", it.date, it.owed, it.account.currency, isCard = true) }
+                ).sortedBy { it.date },
+            positions = positionsAll.filter { !it.account.archived },
             available = AvailableToSpendCalculator.compute(
-                AccountLedger.positions(accountList, allTransactions), pendingAll, goals, base, today.withDayOfMonth(today.lengthOfMonth()),
+                positionsAll, pendingAll, goals, base, today.withDayOfMonth(today.lengthOfMonth()),
             ).takeIf { accountList.isNotEmpty() },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewUiState())

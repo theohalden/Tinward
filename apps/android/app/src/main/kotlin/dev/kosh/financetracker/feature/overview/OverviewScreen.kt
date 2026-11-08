@@ -66,7 +66,7 @@ import dev.kosh.financetracker.core.model.TransactionDirection
 import dev.kosh.financetracker.core.model.TransactionType
 import dev.kosh.financetracker.feature.importstatement.StatementImportDialog
 import dev.kosh.financetracker.feature.importstatement.StatementImportViewModel
-import dev.kosh.financetracker.ui.components.AccountCard
+import dev.kosh.financetracker.ui.components.AccountPositionCard
 import dev.kosh.financetracker.ui.components.CategoryIconTile
 import dev.kosh.financetracker.ui.components.ImportIcon
 import dev.kosh.financetracker.ui.components.KoshCard
@@ -93,6 +93,8 @@ fun OverviewScreen(
     onOpenInsights: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenPlan: () -> Unit,
+    onOpenAccount: (Long) -> Unit,
+    onOpenAccounts: () -> Unit,
     viewModel: OverviewViewModel = hiltViewModel(),
     importViewModel: StatementImportViewModel = hiltViewModel(),
 ) {
@@ -163,6 +165,8 @@ fun OverviewScreen(
                 onOpenInsights = onOpenInsights,
                 onOpenSettings = onOpenSettings,
                 onOpenPlan = onOpenPlan,
+                onOpenAccount = onOpenAccount,
+                onOpenAccounts = onOpenAccounts,
                 onImportClick = {
                     filePickerLauncher.launch(
                         arrayOf(
@@ -275,6 +279,8 @@ private fun HomeContent(
     onOpenInsights: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenPlan: () -> Unit,
+    onOpenAccount: (Long) -> Unit,
+    onOpenAccounts: () -> Unit,
     onImportClick: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -345,7 +351,7 @@ private fun HomeContent(
             )
         }
 
-        if (state.upcomingBills.isNotEmpty()) {
+        if (state.upcoming.isNotEmpty()) {
             item {
                 SectionHeader(
                     title = "Coming up",
@@ -354,27 +360,32 @@ private fun HomeContent(
                     modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.lg, bottom = Spacing.sm),
                 )
                 ComingUpCard(
-                    items = state.upcomingBills,
+                    items = state.upcoming,
                     amountsHidden = amountsHidden,
                     modifier = Modifier.padding(horizontal = Spacing.md),
                 )
             }
         }
 
-        if (state.accountSummaries.isNotEmpty()) {
+        if (state.positions.isNotEmpty()) {
             item {
                 SectionHeader(
                     title = "Accounts",
+                    action = "All",
+                    onAction = onOpenAccounts,
                     modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.lg, bottom = Spacing.sm),
                 )
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = Spacing.md),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    items(state.accountSummaries, key = { "${it.bank}-${it.accountSuffix}" }) { account ->
-                        AccountCard(account, amountsHidden)
-                    }
+                    items(state.positions, key = { it.account.id }) { p -> AccountPositionCard(p, amountsHidden) { onOpenAccount(p.account.id) } }
                 }
+                Text(
+                    "Tracked from your messages and entries, not live bank balances.",
+                    style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                )
             }
         }
 
@@ -493,20 +504,21 @@ private fun LeftToSpendHero(
     onToggleAmountsHidden: () -> Unit,
     onOpenInsights: () -> Unit,
 ) {
-    val recorded = summary.income.signum() > 0
-    val income = if (recorded) summary.income else plannedIncome ?: summary.income
+    val basis = dev.kosh.financetracker.core.finance.IncomeBasisRule.choose(summary.income, plannedIncome)
+    val income = basis.amount
     val hasIncome = income.signum() > 0
     val left = income.subtract(summary.expense)
     val headline = if (hasIncome) left else summary.expense
     val label = when {
         !hasIncome -> "Spent this month"
-        left.signum() < 0 -> "Over recorded income by"
+        left.signum() < 0 -> "Over your income by"
         else -> "Left to spend"
     }
-    val caption = when {
-        recorded -> "recorded income minus spending"
-        hasIncome -> "planned income minus spending"
-        else -> "no income recorded this month"
+    val caption = when (basis.source) {
+        dev.kosh.financetracker.core.finance.IncomeSource.RECORDED -> "income received minus spending"
+        dev.kosh.financetracker.core.finance.IncomeSource.PLANNED ->
+            "planned income minus spending" + if (basis.receivedSoFar.signum() > 0) " \u00B7 ${formatMoney(basis.receivedSoFar, amountsHidden)} received so far" else ""
+        dev.kosh.financetracker.core.finance.IncomeSource.NONE -> "no income recorded this month"
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -530,7 +542,7 @@ private fun LeftToSpendHero(
         Spacer(Modifier.height(Spacing.md))
         Row(modifier = Modifier.fillMaxWidth()) {
             StatColumn("Spent", formatMoney(summary.expense, amountsHidden), Modifier.weight(1f))
-            StatColumn(if (recorded || !hasIncome) "Income" else "Planned income", formatMoney(income, amountsHidden), Modifier.weight(1f))
+            StatColumn(if (basis.source == dev.kosh.financetracker.core.finance.IncomeSource.PLANNED) "Planned income" else "Income", formatMoney(income, amountsHidden), Modifier.weight(1f))
         }
         Spacer(Modifier.height(Spacing.sm))
         val fraction = if (hasIncome) (summary.expense.toFloat() / income.toFloat()).coerceIn(0f, 1f) else 0f
@@ -622,7 +634,7 @@ private fun RecentActivityCard(
 
 @Composable
 private fun ComingUpCard(
-    items: List<dev.kosh.financetracker.core.finance.Occurrence>,
+    items: List<Upcoming>,
     amountsHidden: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -638,18 +650,15 @@ private fun ComingUpCard(
                     else -> "In $days days"
                 }
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = Spacing.md, vertical = Spacing.sm),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(o.item.name, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
-                        Text(whenText, style = MaterialTheme.typography.bodySmall, color = if (days < 0) Tinward.colors.negative else Tinward.colors.textSecondary)
+                        Text(o.name, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
+                        Text(whenText + if (o.isCard) " \u00B7 card balance" else "", style = MaterialTheme.typography.bodySmall, color = if (days < 0) Tinward.colors.negative else Tinward.colors.textSecondary)
                     }
-                    Text(formatMoney(o.item.amount, amountsHidden, o.item.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textSecondary)
+                    Text(formatMoney(o.amount, amountsHidden, o.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textSecondary)
                 }
                 HorizontalDivider(color = Tinward.colors.divider, thickness = 1.dp)
             }
@@ -659,7 +668,7 @@ private fun ComingUpCard(
             ) {
                 Text("Due in the next 2 weeks", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
                 Text(
-                    formatMoney(items.fold(java.math.BigDecimal.ZERO) { a, b -> a + b.item.amount }, amountsHidden),
+                    formatMoney(items.fold(java.math.BigDecimal.ZERO) { a, b -> a + b.amount }, amountsHidden),
                     style = MaterialTheme.typography.labelLarge, color = Tinward.colors.textPrimary,
                 )
             }

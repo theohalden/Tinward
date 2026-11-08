@@ -169,6 +169,8 @@ private fun KoshApp() {
                     onOpenInsights = { navController.navigate(KoshDestination.Insights.route) },
                     onOpenSettings = { navController.navigate(KoshDestination.Settings.route) },
                     onOpenPlan = { navController.navigateTab(KoshDestination.Plan) },
+                    onOpenAccount = { id -> navController.navigate(KoshDestination.AccountDetail.createRoute(id)) },
+                    onOpenAccounts = { navController.navigateTab(KoshDestination.Accounts) },
                 )
             }
             composable(KoshDestination.Trail.route) {

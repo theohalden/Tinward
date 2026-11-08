@@ -77,6 +77,7 @@ object ReminderCache {
 class ReminderSync @Inject constructor(
     private val planning: PlanningRepository,
     private val transactions: TransactionRepository,
+    private val accounts: dev.kosh.financetracker.data.repository.AccountRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
 ) {
     private var job: Job? = null
@@ -84,11 +85,16 @@ class ReminderSync @Inject constructor(
     fun start(scope: CoroutineScope) {
         if (job?.isActive == true) return
         job = scope.launch {
-            combine(planning.observeRecurring(), transactions.observeTransactions()) { items, txs ->
+            combine(planning.observeRecurring(), transactions.observeTransactions(), accounts.observeAccounts()) { items, txs, accs ->
                 val today = LocalDate.now()
-                items.filter { it.kind == RecurringKind.BILL }.flatMap { item ->
+                val bills = items.filter { it.kind == RecurringKind.BILL }.flatMap { item ->
                     Recurrence.pending(item, txs, today, today.plusDays(45)).map { ReminderCache.Entry(it.date.toEpochDay(), item.remindDaysBefore) }
                 }
+                // A credit card that owes money is a bill too: three days' notice before its due day.
+                val cards = dev.kosh.financetracker.core.finance.CardDues.upcoming(
+                    dev.kosh.financetracker.core.finance.AccountLedger.positions(accs, txs), today, 45,
+                ).map { ReminderCache.Entry(it.date.toEpochDay(), 3) }
+                bills + cards
             }.collect { ReminderCache.write(context, it) }
         }
     }
