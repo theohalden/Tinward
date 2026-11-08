@@ -77,7 +77,8 @@ class AddTransactionViewModel @Inject constructor(
         val zone = ZoneId.systemDefault()
         val now = Instant.now()
         val timestamp = if (s.date == LocalDate.now(zone)) now else s.date.atTime(LocalTime.NOON).atZone(zone).toInstant()
-        val merchant = s.label.trim().ifBlank { null }
+        // With no description, name the entry after its category so history never says "Unknown".
+        val merchant = s.label.trim().ifBlank { dev.kosh.financetracker.ui.components.labelFor(category) }
         viewModelScope.launch {
             repository.save(
                 Transaction(
