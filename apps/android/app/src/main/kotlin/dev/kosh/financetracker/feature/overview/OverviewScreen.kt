@@ -305,6 +305,24 @@ private fun HomeContent(
                     onToggleAmountsHidden = onToggleAmountsHidden,
                     onOpenInsights = onOpenInsights,
                 )
+                state.available?.let { a ->
+                    Spacer(Modifier.height(Spacing.md))
+                    KoshCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenPlan)) {
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Available to spend", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+                                Text("estimate, after bills and goals", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+                            }
+                            Text(
+                                formatMoney(a.available, amountsHidden, a.currency), style = MaterialTheme.typography.titleMedium,
+                                color = if (a.available.signum() < 0) Tinward.colors.negative else Tinward.colors.textPrimary,
+                            )
+                        }
+                    }
+                }
                 if (state.needsReviewCount > 0) {
                     Spacer(Modifier.height(Spacing.md))
                     NeedsReviewRow(state.needsReviewCount, onClick = onOpenReview)
@@ -327,7 +345,7 @@ private fun HomeContent(
             )
         }
 
-        if (state.fixedExpenses.isNotEmpty()) {
+        if (state.upcomingBills.isNotEmpty()) {
             item {
                 SectionHeader(
                     title = "Coming up",
@@ -336,7 +354,7 @@ private fun HomeContent(
                     modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.lg, bottom = Spacing.sm),
                 )
                 ComingUpCard(
-                    items = state.fixedExpenses,
+                    items = state.upcomingBills,
                     amountsHidden = amountsHidden,
                     modifier = Modifier.padding(horizontal = Spacing.md),
                 )
@@ -604,23 +622,34 @@ private fun RecentActivityCard(
 
 @Composable
 private fun ComingUpCard(
-    items: List<dev.kosh.financetracker.data.budget.FixedExpenseItem>,
+    items: List<dev.kosh.financetracker.core.finance.Occurrence>,
     amountsHidden: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val today = java.time.LocalDate.now()
     KoshCard(modifier = modifier.fillMaxWidth()) {
         Column {
-            items.forEach { item ->
+            items.take(4).forEach { o ->
+                val days = java.time.temporal.ChronoUnit.DAYS.between(today, o.date)
+                val whenText = when {
+                    days < 0 -> "Overdue"
+                    days == 0L -> "Today"
+                    days == 1L -> "Tomorrow"
+                    else -> "In $days days"
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp)
+                        .heightIn(min = 56.dp)
                         .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(item.label, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, modifier = Modifier.weight(1f))
-                    Text(formatMoney(item.amount, amountsHidden), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textSecondary)
+                    Column(Modifier.weight(1f)) {
+                        Text(o.item.name, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
+                        Text(whenText, style = MaterialTheme.typography.bodySmall, color = if (days < 0) Tinward.colors.negative else Tinward.colors.textSecondary)
+                    }
+                    Text(formatMoney(o.item.amount, amountsHidden, o.item.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textSecondary)
                 }
                 HorizontalDivider(color = Tinward.colors.divider, thickness = 1.dp)
             }
@@ -628,9 +657,9 @@ private fun ComingUpCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Fixed costs per month", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+                Text("Due in the next 2 weeks", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
                 Text(
-                    formatMoney(items.fold(java.math.BigDecimal.ZERO) { a, b -> a + b.amount }, amountsHidden),
+                    formatMoney(items.fold(java.math.BigDecimal.ZERO) { a, b -> a + b.item.amount }, amountsHidden),
                     style = MaterialTheme.typography.labelLarge, color = Tinward.colors.textPrimary,
                 )
             }

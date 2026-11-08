@@ -6,6 +6,8 @@ import dev.kosh.financetracker.core.model.TransactionCategory
 import dev.kosh.financetracker.core.model.TransactionDirection
 import dev.kosh.financetracker.core.model.TransactionSource
 import dev.kosh.financetracker.core.model.TransactionType
+import dev.kosh.financetracker.core.finance.Frequency
+import dev.kosh.financetracker.core.finance.RecurringKind
 import dev.kosh.financetracker.core.model.AccountType
 import java.math.BigDecimal
 
@@ -57,4 +59,16 @@ class Converters {
 
     @TypeConverter
     fun toNullableBigDecimal(value: String?): BigDecimal? = value?.let { BigDecimal(it) }
+
+    @TypeConverter
+    fun fromFrequency(value: Frequency): String = value.name
+
+    @TypeConverter
+    fun toFrequency(value: String): Frequency = Frequency.valueOf(value)
+
+    @TypeConverter
+    fun fromRecurringKind(value: RecurringKind): String = value.name
+
+    @TypeConverter
+    fun toRecurringKind(value: String): RecurringKind = RecurringKind.valueOf(value)
 }

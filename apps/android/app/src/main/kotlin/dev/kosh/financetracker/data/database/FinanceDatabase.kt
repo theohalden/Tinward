@@ -7,8 +7,9 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [TransactionEntity::class, MerchantCategoryMappingEntity::class, TransactionSourceLink::class, AccountEntity::class],
-    version = 10,
+    entities = [TransactionEntity::class, MerchantCategoryMappingEntity::class, TransactionSourceLink::class, AccountEntity::class,
+        RecurringEntity::class, BudgetEntity::class, GoalEntity::class],
+    version = 11,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -17,6 +18,7 @@ abstract class FinanceDatabase : RoomDatabase() {
     abstract fun merchantCategoryMappingDao(): MerchantCategoryMappingDao
     abstract fun sourceLinkDao(): TransactionSourceLinkDao
     abstract fun accountDao(): AccountDao
+    abstract fun planningDao(): PlanningDao
 
     companion object {
         const val DB_NAME = "finance-tracker.db"
@@ -54,6 +56,22 @@ abstract class FinanceDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE transactions ADD COLUMN splitsJson TEXT")
                 db.execSQL("ALTER TABLE transactions ADD COLUMN customLabel TEXT")
                 db.execSQL("ALTER TABLE transactions ADD COLUMN deletedAtEpochMillis INTEGER")
+            }
+        }
+
+        /** Bills and income schedules, budgets, and savings goals. New tables only. */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS recurring_items (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, " +
+                        "amount TEXT NOT NULL, currency TEXT NOT NULL, kind TEXT NOT NULL, frequency TEXT NOT NULL, anchorEpochDay INTEGER NOT NULL, " +
+                        "accountId INTEGER, category TEXT, remindDaysBefore INTEGER NOT NULL, active INTEGER NOT NULL, paidThroughEpochDay INTEGER)",
+                )
+                db.execSQL("CREATE TABLE IF NOT EXISTS budgets (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, category TEXT, amount TEXT NOT NULL, currency TEXT NOT NULL)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS savings_goals (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, target TEXT NOT NULL, " +
+                        "saved TEXT NOT NULL, currency TEXT NOT NULL, targetDateEpochDay INTEGER, createdAtEpochMillis INTEGER NOT NULL, archived INTEGER NOT NULL)",
+                )
             }
         }
     }

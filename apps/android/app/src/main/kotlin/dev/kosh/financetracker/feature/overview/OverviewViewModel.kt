@@ -9,8 +9,15 @@ import dev.kosh.financetracker.core.finance.DaySpend
 import dev.kosh.financetracker.core.finance.FinanceCalculator
 import dev.kosh.financetracker.core.finance.MonthSummary
 import dev.kosh.financetracker.core.model.Transaction
+import dev.kosh.financetracker.core.finance.AccountLedger
+import dev.kosh.financetracker.core.finance.AvailableToSpend
+import dev.kosh.financetracker.core.finance.AvailableToSpendCalculator
+import dev.kosh.financetracker.core.finance.Occurrence
+import dev.kosh.financetracker.core.finance.Recurrence
+import dev.kosh.financetracker.core.finance.RecurringKind
 import dev.kosh.financetracker.data.budget.FixedBudgetStore
-import dev.kosh.financetracker.data.budget.FixedExpenseItem
+import dev.kosh.financetracker.data.repository.AccountRepository
+import dev.kosh.financetracker.data.repository.PlanningRepository
 import dev.kosh.financetracker.data.repository.TransactionRepository
 import dev.kosh.financetracker.feature.sync.SmsSyncManager
 import dev.kosh.financetracker.feature.sync.SyncState
@@ -39,7 +46,9 @@ data class OverviewUiState(
     val hasAnyData: Boolean = false,
     /** Income declared in Plan; used when no income is recorded for the month. */
     val plannedIncome: BigDecimal? = null,
-    val fixedExpenses: List<FixedExpenseItem> = emptyList(),
+    /** Unpaid bills in the next two weeks. */
+    val upcomingBills: List<Occurrence> = emptyList(),
+    val available: AvailableToSpend? = null,
 )
 
 @HiltViewModel
@@ -48,6 +57,8 @@ class OverviewViewModel @Inject constructor(
     private val syncManager: SmsSyncManager,
     budgetStore: FixedBudgetStore,
     settings: dev.kosh.financetracker.data.settings.SettingsStore,
+    planning: PlanningRepository,
+    accounts: AccountRepository,
 ) : ViewModel() {
 
     private val zone = ZoneId.systemDefault()
@@ -57,9 +68,12 @@ class OverviewViewModel @Inject constructor(
         repository.observeTransactions(),
         selectedMonth,
         budgetStore.monthlyIncome,
-        budgetStore.expenses,
         settings.baseCurrency,
-    ) { allTransactions, explicitMonth, plannedIncome, fixed, base ->
+        combine(planning.observeRecurring(), accounts.observeAccounts(), planning.observeGoals()) { r, a, g -> Triple(r, a, g) },
+    ) { allTransactions, explicitMonth, plannedIncome, base, plan ->
+        val (recurring, accountList, goals) = plan
+        val today = java.time.LocalDate.now()
+        val pendingAll = recurring.flatMap { Recurrence.pending(it, allTransactions, today, today.plusDays(45), zone) }.sortedBy { it.date }
         // Totals never mix currencies: Home shows the base currency only.
         val transactions = allTransactions.filter { it.currency == base }
         val month = explicitMonth ?: YearMonth.now(zone)
@@ -85,7 +99,10 @@ class OverviewViewModel @Inject constructor(
             needsReviewCount = FinanceCalculator.uncategorizedCountForMonth(transactions, month, zone),
             hasAnyData = transactions.isNotEmpty(),
             plannedIncome = plannedIncome?.takeIf { it.signum() > 0 },
-            fixedExpenses = fixed,
+            upcomingBills = pendingAll.filter { it.item.kind == RecurringKind.BILL && it.item.currency == base && !it.date.isAfter(today.plusDays(14)) },
+            available = AvailableToSpendCalculator.compute(
+                AccountLedger.positions(accountList, allTransactions), pendingAll, goals, base, today.withDayOfMonth(today.lengthOfMonth()),
+            ).takeIf { accountList.isNotEmpty() },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewUiState())
 

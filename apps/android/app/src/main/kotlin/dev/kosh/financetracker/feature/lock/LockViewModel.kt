@@ -34,6 +34,8 @@ class LockViewModel @Inject constructor(
     private val sms: Lazy<SmsSyncManager>,
     private val budget: Lazy<FixedBudgetStore>,
     private val linker: Lazy<dev.kosh.financetracker.data.repository.AccountLinker>,
+    private val planning: Lazy<dev.kosh.financetracker.data.repository.PlanningRepository>,
+    private val reminders: Lazy<dev.kosh.financetracker.feature.reminders.ReminderSync>,
 ) : ViewModel() {
     private val _ui = MutableStateFlow(LockUi())
     val ui: StateFlow<LockUi> = _ui.asStateFlow()
@@ -89,6 +91,8 @@ class LockViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { budget.get().encryptLegacyValues() }
             linker.get().start(viewModelScope)
+            runCatching { planning.get().importFixedExpensesOnce() }
+            reminders.get().start(viewModelScope)
             val smsOk = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
             if (vault.smsMissedWhileLocked && smsOk) {
                 vault.smsMissedWhileLocked = false

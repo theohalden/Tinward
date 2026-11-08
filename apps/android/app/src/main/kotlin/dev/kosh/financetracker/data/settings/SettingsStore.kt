@@ -22,6 +22,7 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
     private val appearanceKey = stringPreferencesKey("appearance")
     private val onboardedKey = booleanPreferencesKey("onboarded")
     private val currencyKey = stringPreferencesKey("base_currency")
+    private val fixedImportedKey = booleanPreferencesKey("fixed_expenses_imported")
 
     val appearance: Flow<Appearance> = context.settingsDataStore.data.map {
         runCatching { Appearance.valueOf(it[appearanceKey] ?: "SYSTEM") }.getOrDefault(Appearance.SYSTEM)
@@ -32,6 +33,9 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
 
     /** The currency Home, Insights and Plan total in. INR until changed, because all earlier data is INR. */
     val baseCurrency: Flow<String> = context.settingsDataStore.data.map { it[currencyKey] ?: "INR" }
+
+    val fixedExpensesImported: Flow<Boolean> = context.settingsDataStore.data.map { it[fixedImportedKey] ?: false }
+    suspend fun markFixedExpensesImported() { context.settingsDataStore.edit { it[fixedImportedKey] = true } }
 
     suspend fun setBaseCurrency(code: String) { context.settingsDataStore.edit { it[currencyKey] = code } }
 
