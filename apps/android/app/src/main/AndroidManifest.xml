@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+      Tinward has no network access by design: it never uploads anything and has no server. A Google
+      telemetry library pulled in by Play Billing declares INTERNET; it is removed here. Play Billing
+      talks to the Play Store app, which has its own network access, so purchases still work.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
     <!-- Statement import remains usable on devices without SMS hardware. -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 

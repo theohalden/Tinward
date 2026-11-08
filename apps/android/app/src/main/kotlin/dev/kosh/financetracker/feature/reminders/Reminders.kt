@@ -157,7 +157,9 @@ class BillReminderWorker(context: Context, params: WorkerParameters) : Worker(co
                 NotificationCompat.Builder(ctx, ReminderScheduler.CHANNEL).setSmallIcon(R.drawable.ic_notification).setContentTitle("Tinward").setContentText("Reminder").build(),
             )
             .setContentIntent(open).setAutoCancel(true).build()
-        runCatching { NotificationManagerCompat.from(ctx).notify(4101, notification) }
+        // Re-checked here, right at the call, so a permission revoked since the check above is handled.
+        val allowed = Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (allowed) runCatching { NotificationManagerCompat.from(ctx).notify(4101, notification) }
         if (!test) ReminderCache.markNotified(ctx, today)
         return Result.success()
     }

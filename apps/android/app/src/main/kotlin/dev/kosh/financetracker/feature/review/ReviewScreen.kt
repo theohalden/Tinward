@@ -120,7 +120,7 @@ private fun ReviewCard(t: Transaction, onConfirm: (TransactionCategory) -> Unit)
                         style = MaterialTheme.typography.labelLarge,
                         color = if (on) Tinward.colors.onAccent else Tinward.colors.textPrimary,
                         modifier = Modifier
-                            .heightIn(min = 44.dp)
+                            .heightIn(min = 48.dp)
                             .clip(RoundedCornerShape(22.dp))
                             .background(if (on) Tinward.colors.accent else Tinward.colors.raised)
                             .clickable { selected = c }
@@ -132,7 +132,7 @@ private fun ReviewCard(t: Transaction, onConfirm: (TransactionCategory) -> Unit)
                         "More…",
                         style = MaterialTheme.typography.labelLarge,
                         color = Tinward.colors.accentText,
-                        modifier = Modifier.heightIn(min = 44.dp).clickable { showAll = true }.padding(horizontal = Spacing.md, vertical = Spacing.ms),
+                        modifier = Modifier.heightIn(min = 48.dp).clickable { showAll = true }.padding(horizontal = Spacing.md, vertical = Spacing.ms),
                     )
                 }
             }

@@ -55,6 +55,7 @@ class MainActivity : FragmentActivity() {
     private val shell: AppShellViewModel by viewModels()
     private val lockVm: LockViewModel by viewModels()
     @javax.inject.Inject lateinit var vault: Vault
+    @javax.inject.Inject lateinit var debugOptions: dev.kosh.financetracker.security.DebugOptions
     @javax.inject.Inject lateinit var billing: dev.kosh.financetracker.feature.plus.BillingManager
 
     override fun onStart() {
@@ -103,6 +104,11 @@ class MainActivity : FragmentActivity() {
                 )
                 onDispose { }
             }
+            val extraFontScale by debugOptions.fontScale.collectAsState()
+            val baseDensity = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(baseDensity.density, baseDensity.fontScale * extraFontScale),
+            ) {
             KoshTheme(darkTheme = dark) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     // The finance UI (and everything that opens the database) exists only while unlocked.
@@ -115,6 +121,7 @@ class MainActivity : FragmentActivity() {
                         else -> KoshApp()
                     }
                 }
+            }
             }
         }
     }

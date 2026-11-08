@@ -44,9 +44,11 @@ fun TinwardMark(modifier: Modifier = Modifier, height: Dp = 22.dp, tColor: Color
 
 @Composable
 fun KoshWordmark(modifier: Modifier = Modifier) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        TinwardMark(height = 20.dp)
-        Spacer(Modifier.width(8.dp))
-        Text("Tinward", style = MaterialTheme.typography.titleLarge.copy(fontFamily = InstrumentSerifFamily, fontSize = 24.sp), color = Tinward.colors.textPrimary)
+    CappedFontScale {
+        Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+            TinwardMark(height = 20.dp)
+            Spacer(Modifier.width(8.dp))
+            Text("Tinward", style = MaterialTheme.typography.titleLarge.copy(fontFamily = InstrumentSerifFamily, fontSize = 24.sp), color = Tinward.colors.textPrimary, maxLines = 1, softWrap = false)
+        }
     }
 }

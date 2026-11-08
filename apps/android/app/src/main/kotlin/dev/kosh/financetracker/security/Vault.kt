@@ -25,6 +25,7 @@ enum class AutoLock(val millis: Long, val label: String) {
  * Nothing that reads the database or budget data may run while [state] is not UNLOCKED.
  */
 @Singleton
+@android.annotation.SuppressLint("ApplySharedPref") // commit() on purpose: the wrong-PIN counter and key wrap must be on disk before we answer, or a crash could reset the attempt limit
 class Vault @Inject constructor(@ApplicationContext private val context: Context) {
     private val prefs = context.getSharedPreferences("tinward_vault", Context.MODE_PRIVATE)
     private val storage = object : VaultStorage {

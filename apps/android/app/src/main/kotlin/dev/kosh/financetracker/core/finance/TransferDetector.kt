@@ -29,13 +29,16 @@ object TransferDetector {
         val matched = mutableSetOf<Long>()
         val references = candidates.associate { it.id to SourceReconciliation.references(it) }
         val possible = mutableMapOf<Long, MutableSet<Long>>()
-        for (i in candidates.indices) {
-            val a = candidates[i]
+        // Only equal amounts can ever pair, so compare within each amount group instead of every
+        // row against every other row (that was quadratic: seconds of freeze at tens of thousands
+        // of rows). stripTrailingZeros makes "5210" and "5210.00" the same key; BigDecimal.equals
+        // alone would not. Within a group the original order is kept, so the pairs found are identical.
+        for (group in candidates.groupBy { it.amount.stripTrailingZeros() }.values) {
+          for (i in group.indices) {
+            val a = group[i]
 
-            for (j in i + 1 until candidates.size) {
-                val b = candidates[j]
-                // BigDecimal.equals() treats "5210" and "5210.00" as different (scale
-                // differs); compareTo() is the numeric comparison we actually want here.
+            for (j in i + 1 until group.size) {
+                val b = group[j]
                 if (a.amount.compareTo(b.amount) != 0) continue
                 if (a.direction == b.direction) continue
                 // Card receipts and unattributed alerts are not proof of a
@@ -50,6 +53,7 @@ object TransferDetector {
                 possible.getOrPut(a.id) { mutableSetOf() } += b.id
                 possible.getOrPut(b.id) { mutableSetOf() } += a.id
             }
+          }
         }
         for ((id, peers) in possible) {
             val peer = peers.singleOrNull() ?: continue

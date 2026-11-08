@@ -115,6 +115,6 @@ private fun NavEntry(item: BottomNavItem, selected: Boolean, onClick: () -> Unit
     ) {
         Icon(item.icon, contentDescription = null, tint = color)
         Spacer(Modifier.height(2.dp))
-        Text(item.label, style = MaterialTheme.typography.labelSmall, color = color)
+        CappedFontScale { Text(item.label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
     }
 }

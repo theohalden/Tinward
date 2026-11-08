@@ -173,3 +173,18 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 **Tests.** 306 unit tests pass (entitlement policy 6, timeline 16, rollover 7, financial review 11, debt planner 15, earlier suites). Verified on device: v12/v13 upgrades on real data, paywall honesty, Plus on and off, Timeline numbers against a hand calculation, 4th budget and 2nd goal then downgrade, Financial Review on real data, Debt planner on a card set up for it.
 
 **Not verified / open.** Billing end to end (above). No automated migration tests for v9 to v13. Financial Review's "unnamed spending" note and Debt planner with two or more cards were covered by unit tests only. Dark mode and large fonts for the new screens not checked. Accessibility of the Timeline chart is a text description only.
+
+## 13. Release checks record (2026-11-08)
+
+Full detail and the blocker list are in `docs/RELEASE_READINESS.md`. Summary of what this pass changed in the code:
+
+- **Network access removed.** The merged manifest contained `INTERNET`, pulled in by a Google telemetry library inside Play Billing. It is removed in `AndroidManifest.xml` (verified in the merged release and preview manifests and on the phone: billing still answers). "No network permission" in Settings is true again.
+- **Performance bug fixed.** Transfer matching and the ledger projection were quadratic (11.7 s at 40,000 rows, scaling badly from 10,000). Both are indexed; results are identical (all existing tests unchanged) and a test now fails if the curve stops being linear.
+- **Migration tests added** (`DatabaseMigrationTest`): real version 7 and 8 databases upgraded to 13 with Room validating the schema.
+- **Release build now shrinks code** (R8 plus resource shrinking) with rules for SQLCipher and Apache POI; tested through a `releaseCheck` build type on the phone under a separate package, then removed.
+- **Lint:** one error fixed, 0 errors remain.
+- **Accessibility:** 48 dp touch targets; text capped for compact navigation elements; four large-text layout faults fixed (found at 2x text through a debug-only text-size override).
+- **Tests:** 317 pass.
+
+Open items are all in the blocker table of the readiness document.
+

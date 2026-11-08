@@ -136,9 +136,14 @@ internal fun BudgetTab(state: PlanUiState, vm: PlanViewModel, onEditIncome: () -
 private fun BudgetLine(label: String, status: BudgetStatus, currency: String, note: String? = null, paused: Boolean = false) {
     val color = when { paused -> Tinward.colors.textTertiary; status.over -> Tinward.colors.negative; status.warning -> Tinward.colors.accentText; else -> Tinward.colors.accent }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = Tinward.colors.textPrimary)
-            Text("${formatMoney(status.spent, currencyCode = currency)} of ${formatMoney(status.limit, currencyCode = currency)}", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textSecondary)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+            Text(label, style = MaterialTheme.typography.labelLarge, color = Tinward.colors.textPrimary, modifier = Modifier.weight(1f))
+            // May wrap onto two lines at large text sizes instead of running into the label.
+            Text(
+                "${formatMoney(status.spent, currencyCode = currency)} of ${formatMoney(status.limit, currencyCode = currency)}",
+                style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1.4f).padding(start = Spacing.sm),
+            )
         }
         Bar(status.fraction.coerceIn(0f, 1f), color)
         note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = if (paused) Tinward.colors.accentText else Tinward.colors.textTertiary) }

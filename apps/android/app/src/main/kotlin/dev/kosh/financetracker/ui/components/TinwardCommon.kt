@@ -86,7 +86,7 @@ fun PrimaryButton(label: String, onClick: () -> Unit, modifier: Modifier = Modif
             disabledContainerColor = Tinward.colors.raised,
             disabledContentColor = Tinward.colors.textTertiary,
         ),
-    ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+    ) { CappedFontScale(1.5f) { Text(label, style = MaterialTheme.typography.labelLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 2) } }
 }
 
 @Composable
@@ -96,7 +96,7 @@ fun SecondaryButton(label: String, onClick: () -> Unit, modifier: Modifier = Mod
         modifier = modifier.heightIn(min = 48.dp),
         shape = RoundedCornerShape(14.dp),
         border = BorderStroke(1.dp, Tinward.colors.divider),
-    ) { Text(label, style = MaterialTheme.typography.labelLarge, color = Tinward.colors.textPrimary) }
+    ) { CappedFontScale(1.5f) { Text(label, style = MaterialTheme.typography.labelLarge, color = Tinward.colors.textPrimary, textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 2) } }
 }
 
 /** Pill-style segmented control, e.g. All / Income / Spent. */
@@ -120,17 +120,21 @@ fun SegmentedTabs(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 44.dp)
+                    .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (selected) Tinward.colors.surface else androidx.compose.ui.graphics.Color.Transparent)
                     .clickable(role = Role.Tab) { onSelect(i) },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (selected) Tinward.colors.textPrimary else Tinward.colors.textTertiary,
-                )
+                // Tab labels stay on one line however large the system text is.
+                CappedFontScale {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (selected) Tinward.colors.textPrimary else Tinward.colors.textTertiary,
+                        maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
@@ -192,7 +196,7 @@ fun FieldRow(label: String, value: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 44.dp)
+            .heightIn(min = 48.dp)
             .padding(horizontal = Spacing.md),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -220,8 +224,8 @@ fun <T> ChoiceChips(options: List<T>, selected: T?, label: (T) -> String, onSele
                 style = MaterialTheme.typography.labelLarge,
                 color = if (on) Tinward.colors.onAccent else Tinward.colors.textPrimary,
                 modifier = Modifier
-                    .heightIn(min = 44.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .heightIn(min = 48.dp)   // Android's minimum touch target
+                    .clip(RoundedCornerShape(24.dp))
                     .background(if (on) Tinward.colors.accent else Tinward.colors.raised)
                     .clickable { onSelect(o) }
                     .padding(horizontal = Spacing.md, vertical = Spacing.ms),

@@ -75,6 +75,13 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
                 { viewModel.setAppearance(Appearance.values()[it]) },
             )
 
+            if (viewModel.debugOptions.enabled) {
+                val scale by viewModel.debugOptions.fontScale.collectAsState()
+                SectionLabel("Testing (debug builds only)")
+                Text("Text size on top of the system setting, to check large-text layouts.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+                dev.kosh.financetracker.ui.components.ChoiceChips(listOf(1f, 1.3f, 1.6f, 2f), scale, { "${it}\u00D7" }, viewModel.debugOptions::setFontScale)
+            }
+
             SectionLabel("Tinward Plus")
             KoshCard {
                 ActionRow(if (plusTier == dev.kosh.financetracker.feature.plus.Tier.PLUS) "You have Tinward Plus" else "Tinward Plus", "Planning tools on top of everything in Free.") { onOpenPlus() }

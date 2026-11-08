@@ -39,6 +39,7 @@ fun MonthSelectorPill(
 ) {
     var sheetOpen by remember { mutableStateOf(false) }
 
+    CappedFontScale {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
@@ -50,9 +51,10 @@ fun MonthSelectorPill(
     ) {
         CalendarIcon(tint = Tinward.colors.textSecondary, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(Spacing.xs))
-        Text(monthLabel(selectedMonth), style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary)
+        Text(monthLabel(selectedMonth), style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary, maxLines = 1, softWrap = false)
         Spacer(Modifier.width(Spacing.xs))
         ChevronDownIcon(tint = Tinward.colors.textSecondary)
+    }
     }
 
     if (sheetOpen) {

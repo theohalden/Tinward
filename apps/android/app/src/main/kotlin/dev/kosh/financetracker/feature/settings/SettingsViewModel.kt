@@ -23,6 +23,7 @@ class SettingsViewModel @Inject constructor(
     private val settings: SettingsStore,
     private val repository: TransactionRepository,
     val vault: dev.kosh.financetracker.security.Vault,
+    val debugOptions: dev.kosh.financetracker.security.DebugOptions,
     val entitlements: dev.kosh.financetracker.feature.plus.Entitlements,
     private val syncManager: dev.kosh.financetracker.feature.sync.SmsSyncManager,
     val backup: dev.kosh.financetracker.security.BackupManager,

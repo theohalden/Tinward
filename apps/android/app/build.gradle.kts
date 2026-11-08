@@ -39,8 +39,21 @@ android {
         }
         release {
             signingConfig = signingConfigs.findByName("distribution")
-            isMinifyEnabled = false
+            // Shrinks and obfuscates the code and drops unused resources. Tested through the
+            // releaseCheck build below, which is the same configuration with a throwaway identity.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        // Not for distribution: the release configuration under another package name and the
+        // debug key, so the shrunk build can be installed next to the real app and exercised
+        // without ever replacing or colliding with it.
+        create("releaseCheck") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".releasecheck"
+            versionNameSuffix = "-releasecheck"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
         }
     }
 
