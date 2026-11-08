@@ -33,6 +33,8 @@ data class Account(
     val creditLimit: BigDecimal? = null,
     val statementDay: Int? = null,
     val dueDay: Int? = null,
+    /** Yearly interest rate in percent, entered by the user for the debt planner. */
+    val apr: BigDecimal? = null,
 ) {
     val isLiability: Boolean get() = type == AccountType.CREDIT_CARD
 }

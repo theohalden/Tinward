@@ -110,6 +110,9 @@ dependencies {
     implementation("net.zetetic:sqlcipher-android:4.5.6@aar")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
     implementation("androidx.biometric:biometric:1.1.0")
+
+    // Google Play subscriptions for Tinward Plus. No account or server of ours is involved.
+    implementation("com.android.billingclient:billing-ktx:7.0.0")
     implementation("androidx.fragment:fragment-ktx:1.6.2")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")

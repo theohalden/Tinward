@@ -30,6 +30,7 @@ data class AccountFormState(
     val limit: String = "",
     val statementDay: String = "",
     val dueDay: String = "",
+    val apr: String = "",
     val linkedId: Long? = null,
     val banks: List<Account> = emptyList(),
     val error: String? = null,
@@ -58,7 +59,7 @@ class AccountFormViewModel @Inject constructor(
                 type = existing.type, name = existing.name, institution = existing.institution.orEmpty(), last4 = existing.last4.orEmpty(),
                 currency = existing.currency, opening = existing.openingBalance.toPlainString(),
                 limit = existing.creditLimit?.toPlainString().orEmpty(), statementDay = existing.statementDay?.toString().orEmpty(),
-                dueDay = existing.dueDay?.toString().orEmpty(), linkedId = existing.linkedAccountId, banks = banks, editing = true,
+                dueDay = existing.dueDay?.toString().orEmpty(), apr = existing.apr?.toPlainString().orEmpty(), linkedId = existing.linkedAccountId, banks = banks, editing = true,
             ) else AccountFormState(currency = settings.baseCurrency.first(), banks = banks)
         }
     }
@@ -77,6 +78,7 @@ class AccountFormViewModel @Inject constructor(
         fun day(t: String): Int? = if (t.isBlank()) null else t.toIntOrNull()?.takeIf { it in 1..31 }
         if (s.statementDay.isNotBlank() && day(s.statementDay) == null) return fail("Statement day must be 1 to 31.")
         if (s.dueDay.isNotBlank() && day(s.dueDay) == null) return fail("Due day must be 1 to 31.")
+        val apr = if (s.type == AccountType.CREDIT_CARD && s.apr.isNotBlank()) money(s.apr)?.takeIf { it.signum() >= 0 && it <= BigDecimal(100) } ?: return fail("Interest rate should be a yearly percentage between 0 and 100.") else null
         if (s.type == AccountType.DEBIT_CARD && s.linkedId == null) return fail("Pick the bank account this card spends from.")
         val base = original
         val account = Account(
@@ -87,6 +89,7 @@ class AccountFormViewModel @Inject constructor(
             linkedAccountId = if (s.type == AccountType.DEBIT_CARD) s.linkedId else null,
             creditLimit = limit, statementDay = if (s.type == AccountType.CREDIT_CARD) day(s.statementDay) else null,
             dueDay = if (s.type == AccountType.CREDIT_CARD) day(s.dueDay) else null,
+            apr = apr,
         )
         viewModelScope.launch {
             if (base == null) accounts.create(account) else accounts.update(account)

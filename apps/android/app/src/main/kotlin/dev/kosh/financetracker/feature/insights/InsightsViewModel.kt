@@ -39,6 +39,8 @@ data class InsightsUiState(
     val averageSpent: BigDecimal? = null,
     val comparison: MonthComparison? = null,
     val stand: Standing? = null,
+    val plus: Boolean = false,
+    val review: dev.kosh.financetracker.core.finance.ReviewReport? = null,
 )
 
 /** Where tracked money stands today, in one currency. An estimate from records, not a bank balance. */
@@ -51,6 +53,9 @@ class InsightsViewModel @Inject constructor(
     repository: TransactionRepository,
     settings: dev.kosh.financetracker.data.settings.SettingsStore,
     accounts: AccountRepository,
+    planning: dev.kosh.financetracker.data.repository.PlanningRepository,
+    budgetStore: dev.kosh.financetracker.data.budget.FixedBudgetStore,
+    entitlements: dev.kosh.financetracker.feature.plus.Entitlements,
 ) : ViewModel() {
 
     private val zone = ZoneId.systemDefault()
@@ -61,7 +66,10 @@ class InsightsViewModel @Inject constructor(
         selectedMonth,
         settings.baseCurrency,
         accounts.observeAccounts(),
-    ) { allTransactions, explicitMonth, base, accountList ->
+        combine(planning.observeRecurring(), budgetStore.monthlyIncome, entitlements.tier) { r, i, t -> Triple(r, i, t) },
+    ) { allTransactions, explicitMonth, base, accountList, extras ->
+        val (recurring, plannedIncome, tier) = extras
+        val plus = tier == dev.kosh.financetracker.feature.plus.Tier.PLUS
         val transactions = allTransactions.filter { it.currency == base }
         val month = explicitMonth ?: YearMonth.now(zone)
         val monthsWithData = FinanceCalculator.monthsWithData(transactions, zone)
@@ -84,6 +92,11 @@ class InsightsViewModel @Inject constructor(
             averageSpent = Trends.averageSpent(trend),
             comparison = Trends.comparison(transactions, month, zone),
             stand = standing(AccountLedger.positions(accountList, allTransactions), base),
+            plus = plus,
+            // Built only for Plus, so Free never spends time computing what it will not show.
+            review = if (plus) dev.kosh.financetracker.core.finance.FinancialReview.build(
+                transactions, month, recurring, dev.kosh.financetracker.core.finance.IncomeBasisRule.choose(FinanceCalculator.summaryForMonth(transactions, month, zone).income, plannedIncome).amount, base,
+            ) else null,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InsightsUiState())
 

@@ -29,16 +29,17 @@ data class AccountEntity(
     val statementDay: Int?,
     val dueDay: Int?,
     val createdAtEpochMillis: Long,
+    val apr: BigDecimal? = null,
 )
 
 fun AccountEntity.toDomain() = Account(
     id, name, type, institution, last4, currency, openingBalance, Instant.ofEpochMilli(openingDateEpochMillis),
-    archived, sortOrder, linkedAccountId, creditLimit, statementDay, dueDay,
+    archived, sortOrder, linkedAccountId, creditLimit, statementDay, dueDay, apr,
 )
 
 fun Account.toEntity() = AccountEntity(
     id, name, type, institution, last4, currency, openingBalance, openingDate.toEpochMilli(),
-    archived, sortOrder, linkedAccountId, creditLimit, statementDay, dueDay, System.currentTimeMillis(),
+    archived, sortOrder, linkedAccountId, creditLimit, statementDay, dueDay, System.currentTimeMillis(), apr,
 )
 
 @Dao

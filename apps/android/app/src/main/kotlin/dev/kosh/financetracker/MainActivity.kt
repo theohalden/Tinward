@@ -55,10 +55,13 @@ class MainActivity : FragmentActivity() {
     private val shell: AppShellViewModel by viewModels()
     private val lockVm: LockViewModel by viewModels()
     @javax.inject.Inject lateinit var vault: Vault
+    @javax.inject.Inject lateinit var billing: dev.kosh.financetracker.feature.plus.BillingManager
 
     override fun onStart() {
         super.onStart()
         vault.onForegrounded()
+        // Asks Google Play what is active. Touches no financial data, so it is fine while locked.
+        billing.refresh()
     }
 
     override fun onStop() {
@@ -176,11 +179,12 @@ private fun KoshApp() {
             composable(KoshDestination.Trail.route) {
                 TrailScreen(onOpenTransaction = { id -> navController.navigate(KoshDestination.Detail.createRoute(id)) })
             }
-            composable(KoshDestination.Plan.route) { PlanScreen() }
+            composable(KoshDestination.Plan.route) { PlanScreen(onOpenTimeline = { navController.navigate(KoshDestination.Timeline.route) }, onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }) }
             composable(KoshDestination.Accounts.route) {
                 AccountsScreen(
                     onOpenAccount = { id -> navController.navigate(KoshDestination.AccountDetail.createRoute(id)) },
                     onAddAccount = { navController.navigate(KoshDestination.AccountForm.createRoute()) },
+                    onOpenDebt = { navController.navigate(KoshDestination.Debt.route) },
                 )
             }
             composable(
@@ -197,16 +201,19 @@ private fun KoshApp() {
                 KoshDestination.AccountForm.route,
                 arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
             ) { AccountFormScreen(onDone = { navController.popBackStack() }) }
-            composable(KoshDestination.Insights.route) { InsightsScreen(onBack = { navController.popBackStack() }) }
+            composable(KoshDestination.Insights.route) { InsightsScreen(onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }, onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Review.route) { ReviewScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Add.route) { AddTransactionScreen(onDone = { navController.popBackStack() }) }
             composable(
                 KoshDestination.Edit.route,
                 arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
             ) { AddTransactionScreen(onDone = { navController.popBackStack() }) }
+            composable(KoshDestination.Debt.route) { dev.kosh.financetracker.feature.debt.DebtPlannerScreen(onBack = { navController.popBackStack() }, onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }, onEditAccount = { id -> navController.navigate(KoshDestination.AccountForm.createRoute(id)) }) }
+            composable(KoshDestination.Timeline.route) { dev.kosh.financetracker.feature.timeline.TimelineScreen(onBack = { navController.popBackStack() }, onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }) }
+            composable(KoshDestination.Plus.route) { dev.kosh.financetracker.feature.plus.PaywallScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.ImportCsv.route) { dev.kosh.financetracker.feature.importcsv.ImportCsvScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Deleted.route) { dev.kosh.financetracker.feature.deleted.DeletedScreen(onBack = { navController.popBackStack() }) }
-            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }, onOpenDeleted = { navController.navigate(KoshDestination.Deleted.route) }, onOpenImportCsv = { navController.navigate(KoshDestination.ImportCsv.route) }) }
+            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }, onOpenDeleted = { navController.navigate(KoshDestination.Deleted.route) }, onOpenImportCsv = { navController.navigate(KoshDestination.ImportCsv.route) }, onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }) }
             composable(KoshDestination.Detail.route) {
                 TransactionDetailScreen(
                     onBack = { navController.popBackStack() },

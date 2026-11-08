@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [TransactionEntity::class, MerchantCategoryMappingEntity::class, TransactionSourceLink::class, AccountEntity::class,
         RecurringEntity::class, BudgetEntity::class, GoalEntity::class],
-    version = 11,
+    version = 13,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -72,6 +72,21 @@ abstract class FinanceDatabase : RoomDatabase() {
                     "CREATE TABLE IF NOT EXISTS savings_goals (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, target TEXT NOT NULL, " +
                         "saved TEXT NOT NULL, currency TEXT NOT NULL, targetDateEpochDay INTEGER, createdAtEpochMillis INTEGER NOT NULL, archived INTEGER NOT NULL)",
                 )
+            }
+        }
+
+        /** Budget rollover (Plus). Existing budgets keep behaving exactly as before: rollover off. */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE budgets ADD COLUMN rollover INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE budgets ADD COLUMN startEpochDay INTEGER")
+            }
+        }
+
+        /** A credit card's interest rate, for the debt planner (Plus). Nullable, nothing else changes. */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE accounts ADD COLUMN apr TEXT")
             }
         }
     }

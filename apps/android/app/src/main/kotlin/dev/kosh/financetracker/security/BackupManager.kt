@@ -162,6 +162,6 @@ class BackupManager @Inject constructor(
 
     private companion object {
         /** Highest Room schema this build can read. Keep in step with FinanceDatabase. */
-        const val MAX_DB_VERSION = 11
+        const val MAX_DB_VERSION = 13
     }
 }

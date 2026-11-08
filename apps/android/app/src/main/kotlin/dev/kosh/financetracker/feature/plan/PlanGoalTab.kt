@@ -37,14 +37,16 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @Composable
-internal fun GoalTab(state: PlanUiState, vm: PlanViewModel) {
+internal fun GoalTab(state: PlanUiState, vm: PlanViewModel, onOpenPlus: () -> Unit) {
     var editing by remember { mutableStateOf<SavingsGoal?>(null) }
     var creating by remember { mutableStateOf(false) }
-    var moving by remember { mutableStateOf<Boolean?>(null) }   // true = add, false = take out
-    val goal = state.activeGoal
+    var moving by remember { mutableStateOf<Pair<SavingsGoal, Boolean>?>(null) }   // second = true to add, false to take out
     val cur = state.currency
+    val active = state.goals.filter { !it.archived }
+    val workable = state.workableGoals
+    val paused = active.filter { g -> workable.none { it.id == g.id } }
 
-    if (goal == null) {
+    if (active.isEmpty()) {
         KoshCard {
             Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text("A savings goal", style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary)
@@ -55,7 +57,9 @@ internal fun GoalTab(state: PlanUiState, vm: PlanViewModel) {
                 PrimaryButton("Start a goal", { creating = true }, Modifier.fillMaxWidth())
             }
         }
-    } else {
+    }
+
+    workable.forEach { goal ->
         KoshCard {
             Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(goal.name, style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary)
@@ -73,20 +77,39 @@ internal fun GoalTab(state: PlanUiState, vm: PlanViewModel) {
                 }
                 if (goal.saved >= goal.target) Text("Goal reached.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.positive)
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.padding(top = Spacing.sm)) {
-                    PrimaryButton("Add money", { moving = true }, Modifier.weight(1f))
-                    SecondaryButton("Take out", { moving = false }, Modifier.weight(1f))
+                    PrimaryButton("Add money", { moving = goal to true }, Modifier.weight(1f))
+                    SecondaryButton("Take out", { moving = goal to false }, Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     SecondaryButton("Edit", { editing = goal }, Modifier.weight(1f))
                     SecondaryButton("Archive", { vm.archiveGoal(goal.id, true) }, Modifier.weight(1f))
                 }
-                Text(
-                    "Adding money here is a note to yourself. It does not move money between accounts; it just stops Tinward counting it as spendable.",
-                    style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
-                )
             }
         }
     }
+
+    paused.forEach { goal ->
+        KoshCard(containerColor = Tinward.colors.raised) {
+            Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(goal.name, style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                Text("${formatMoney(goal.saved, currencyCode = goal.currency)} of ${formatMoney(goal.target, currencyCode = goal.currency)} set aside", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+                Text("Paused: more than one goal needs Tinward Plus. Your goal and savings note are kept, and still held back from available to spend.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.accentText)
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    SecondaryButton("See Plus", onOpenPlus, Modifier.weight(1f))
+                    SecondaryButton("Archive", { vm.archiveGoal(goal.id, true) }, Modifier.weight(1f))
+                }
+            }
+        }
+    }
+
+    if (active.isNotEmpty()) {
+        if (state.plus) PrimaryButton("Add another goal", { creating = true }, Modifier.fillMaxWidth())
+        else SecondaryButton("Save for more than one thing with Plus", onOpenPlus, Modifier.fillMaxWidth())
+    }
+    Text(
+        "Adding money here is a note to yourself. It does not move money between accounts; it just stops Tinward counting it as spendable.",
+        style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
+    )
 
     val archived = state.goals.filter { it.archived }
     if (archived.isNotEmpty()) {
@@ -105,12 +128,12 @@ internal fun GoalTab(state: PlanUiState, vm: PlanViewModel) {
 
     if (creating) GoalDialog(null, cur, onDismiss = { creating = false }) { vm.saveGoal(it); creating = false }
     editing?.let { g -> GoalDialog(g, cur, onDismiss = { editing = null }) { vm.saveGoal(it); editing = null } }
-    moving?.let { add ->
+    moving?.let { (goal, add) ->
         AmountDialog(
-            title = if (add) "Add to ${goal?.name}" else "Take out of ${goal?.name}",
+            title = if (add) "Add to ${goal.name}" else "Take out of ${goal.name}",
             help = if (add) "How much you are setting aside now." else "How much you are releasing back to spendable money.",
             initial = "", currency = cur, onDismiss = { moving = null },
-        ) { amount -> amount?.let { vm.contribute(goal!!.id, if (add) it else it.negate()) }; moving = null }
+        ) { amount -> amount?.let { vm.contribute(goal.id, if (add) it else it.negate()) }; moving = null }
     }
 }
 

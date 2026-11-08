@@ -2,6 +2,7 @@ package dev.kosh.financetracker.feature.insights
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,7 @@ import kotlin.math.roundToInt
 @Composable
 fun InsightsScreen(
     onBack: () -> Unit,
+    onOpenPlus: () -> Unit,
     viewModel: InsightsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -89,6 +91,11 @@ fun InsightsScreen(
             item { TrendCard(state) }
             state.comparison?.let { c -> item { ComparisonCard(c, state.currency, state.selectedMonth) } }
             state.stand?.let { st -> item { StandingCard(st, state.currency) } }
+            item { SectionLabel("Financial Review") }
+            item {
+                val review = state.review
+                if (state.plus && review != null) ReviewCards(review, state.currency) else ReviewTeaser(onOpenPlus)
+            }
             if (state.categoryBreakdown.isNotEmpty()) {
                 item { SectionLabel("Where it went") }
                 item {
@@ -264,6 +271,76 @@ private fun StandingCard(st: Standing, currency: String) {
                     if (st.accountsWithoutBalance > 0) " ${st.accountsWithoutBalance} account${if (st.accountsWithoutBalance == 1) " shows" else "s show"} zero; set the real balance in Accounts." else "",
                 style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
             )
+        }
+    }
+}
+
+@Composable
+private fun ReviewTeaser(onOpenPlus: () -> Unit) {
+    KoshCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenPlus)) {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text("See what changed and why", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+            Text("Top merchants, which categories rose or fell, how this month is pacing against last, your savings rate and how much of your income is already committed to bills. Part of Tinward Plus.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+            Text("See Tinward Plus", style = MaterialTheme.typography.labelLarge, color = Tinward.colors.accentText)
+        }
+    }
+}
+
+@Composable
+private fun ReviewCards(r: dev.kosh.financetracker.core.finance.ReviewReport, currency: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        r.pace?.let { p ->
+            KoshCard {
+                Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text("Pace this month", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                    Text("${formatMoney(p.spentToDate, currencyCode = currency)} spent by day ${p.dayOfMonth}", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
+                    Text("Same days last month: ${formatMoney(p.lastMonthByThisDay, currencyCode = currency)}", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+                    Text(
+                        p.projectedMonthEnd?.let { "At this pace the month ends near ${formatMoney(it, currencyCode = currency)}." } ?: "Too early in the month to project the end.",
+                        style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
+                    )
+                }
+            }
+        }
+        if (r.savingsRatePercent != null || r.fixedObligationPercent != null) KoshCard {
+            Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text("Your income, split", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                r.savingsRatePercent?.let { Text("Kept after spending: $it%", style = MaterialTheme.typography.bodyLarge, color = if (it < 0) Tinward.colors.negative else Tinward.colors.textPrimary) }
+                r.fixedObligationPercent?.let { Text("Already committed to bills: $it% (${formatMoney(r.monthlyBills, currencyCode = currency)} a month)", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary) }
+                Text("Uses your planned income, or what you actually received if it was higher.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+            }
+        }
+        if (r.topMerchants.isNotEmpty()) KoshCard {
+            Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("Top places you spent", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                if (r.unnamedSpend.signum() > 0) Text("${formatMoney(r.unnamedSpend, currencyCode = currency)} more is in transactions with no merchant name, so it is not ranked.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+                r.topMerchants.forEach { m ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(Modifier.weight(1f)) {
+                            Text(m.merchant, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary, maxLines = 1)
+                            Text(
+                                "${m.count} time${if (m.count == 1) "" else "s"}" + (m.changePercent?.let { " \u00B7 ${if (it >= 0) "up" else "down"} ${abs(it)}% on last month" } ?: ""),
+                                style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
+                            )
+                        }
+                        Text(formatMoney(m.amount, currencyCode = currency), style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary)
+                    }
+                }
+            }
+        }
+        if (r.risers.isNotEmpty() || r.fallers.isNotEmpty()) KoshCard {
+            Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("What changed since last month", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                (r.risers + r.fallers).forEach { c ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(labelFor(c.category), style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary, modifier = Modifier.weight(1f))
+                        Text(
+                            (if (c.delta.signum() > 0) "\u25B2 " else "\u25BC ") + formatMoney(c.delta.abs(), currencyCode = currency),
+                            style = MaterialTheme.typography.bodyMedium, color = if (c.delta.signum() > 0) Tinward.colors.negative else Tinward.colors.positive,
+                        )
+                    }
+                }
+            }
         }
     }
 }

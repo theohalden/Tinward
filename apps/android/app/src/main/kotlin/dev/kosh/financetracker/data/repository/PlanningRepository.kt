@@ -31,7 +31,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /** A budget the user has set. [category] null means the overall monthly budget. */
-data class BudgetLimit(val id: Long, val category: TransactionCategory?, val amount: BigDecimal, val currency: String)
+data class BudgetLimit(
+    val id: Long, val category: TransactionCategory?, val amount: BigDecimal, val currency: String,
+    val rollover: Boolean = false, val start: java.time.YearMonth? = null,
+)
 
 @Singleton
 class PlanningRepository @Inject constructor(
@@ -40,6 +43,7 @@ class PlanningRepository @Inject constructor(
     private val transactions: TransactionDao,
     private val fixedStore: FixedBudgetStore,
     private val settings: SettingsStore,
+    private val entitlements: dev.kosh.financetracker.feature.plus.Entitlements,
 ) {
     // ---- bills and income ----
     fun observeRecurring(): Flow<List<RecurringItem>> = dao.observeRecurring().map { list -> list.map { it.toDomain() } }
@@ -72,27 +76,38 @@ class PlanningRepository @Inject constructor(
     }
 
     // ---- budgets ----
-    fun observeBudgets(): Flow<List<BudgetLimit>> = dao.observeBudgets().map { l -> l.map { BudgetLimit(it.id, it.category, it.amount, it.currency) } }
+    fun observeBudgets(): Flow<List<BudgetLimit>> = dao.observeBudgets().map { l ->
+        l.map { BudgetLimit(it.id, it.category, it.amount, it.currency, it.rollover, it.startEpochDay?.let { d -> java.time.YearMonth.from(LocalDate.ofEpochDay(d)) }) }
+    }
 
-    suspend fun setOverallBudget(amount: BigDecimal?, currency: String) = database.withTransaction {
+    private fun startFor(existing: BudgetEntity?, rollover: Boolean): Long? =
+        if (!rollover) existing?.startEpochDay
+        else existing?.startEpochDay?.takeIf { existing.rollover } ?: LocalDate.now().withDayOfMonth(1).toEpochDay()
+
+    suspend fun setOverallBudget(amount: BigDecimal?, currency: String, rollover: Boolean = false) = database.withTransaction {
         val existing = dao.budgets().firstOrNull { it.category == null }
+        val roll = rollover && entitlements.isPlus
         when {
             amount == null && existing != null -> dao.deleteBudget(existing.id)
             amount == null -> Unit
-            existing == null -> dao.insertBudget(BudgetEntity(category = null, amount = amount, currency = currency))
-            else -> dao.updateBudget(existing.copy(amount = amount, currency = currency))
+            existing == null -> dao.insertBudget(BudgetEntity(category = null, amount = amount, currency = currency, rollover = roll, startEpochDay = startFor(null, roll)))
+            else -> dao.updateBudget(existing.copy(amount = amount, currency = currency, rollover = roll, startEpochDay = startFor(existing, roll)))
         }
     }
 
-    /** Sets or changes a category budget. A fourth distinct category is refused (free tier limit). */
-    suspend fun setCategoryBudget(category: TransactionCategory, amount: BigDecimal, currency: String): Result<Unit> = database.withTransaction {
+    /**
+     * Sets or changes a category budget. On the free plan a fourth category is refused; Plus has no
+     * limit. If Plus lapses, extra budgets are kept and shown, but only the first few are enforced.
+     */
+    suspend fun setCategoryBudget(category: TransactionCategory, amount: BigDecimal, currency: String, rollover: Boolean = false): Result<Unit> = database.withTransaction {
         val all = dao.budgets()
         val existing = all.firstOrNull { it.category == category }
-        if (existing == null && all.count { it.category != null } >= Budgets.FREE_CATEGORY_LIMIT) {
-            return@withTransaction Result.failure(IllegalStateException("The free plan covers ${Budgets.FREE_CATEGORY_LIMIT} category budgets. Remove one to add another."))
+        if (existing == null && !entitlements.isPlus && all.count { it.category != null } >= Budgets.FREE_CATEGORY_LIMIT) {
+            return@withTransaction Result.failure(IllegalStateException("The free plan covers ${Budgets.FREE_CATEGORY_LIMIT} category budgets. Remove one, or get Tinward Plus for unlimited."))
         }
-        if (existing == null) dao.insertBudget(BudgetEntity(category = category, amount = amount, currency = currency))
-        else dao.updateBudget(existing.copy(amount = amount, currency = currency))
+        val roll = rollover && entitlements.isPlus
+        if (existing == null) dao.insertBudget(BudgetEntity(category = category, amount = amount, currency = currency, rollover = roll, startEpochDay = startFor(null, roll)))
+        else dao.updateBudget(existing.copy(amount = amount, currency = currency, rollover = roll, startEpochDay = startFor(existing, roll)))
         Result.success(Unit)
     }
 
@@ -104,7 +119,7 @@ class PlanningRepository @Inject constructor(
     /** Free tier keeps one active goal. */
     suspend fun saveGoal(goal: SavingsGoal): Result<Long> = database.withTransaction {
         if (goal.id == 0L) {
-            if (dao.activeGoals().size >= FREE_GOAL_LIMIT) return@withTransaction Result.failure(IllegalStateException("The free plan has one savings goal. Finish or archive it to start another."))
+            if (!entitlements.isPlus && dao.activeGoals().size >= FREE_GOAL_LIMIT) return@withTransaction Result.failure(IllegalStateException("The free plan has one savings goal. Finish or archive it, or get Tinward Plus for several."))
             Result.success(dao.insertGoal(goal.toEntity()))
         } else { dao.updateGoal(goal.toEntity()); Result.success(goal.id) }
     }

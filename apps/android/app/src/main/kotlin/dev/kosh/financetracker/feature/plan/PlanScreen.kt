@@ -51,7 +51,7 @@ import dev.kosh.financetracker.ui.theme.Tinward
 import java.math.BigDecimal
 
 @Composable
-fun PlanScreen(viewModel: PlanViewModel = hiltViewModel()) {
+fun PlanScreen(onOpenTimeline: () -> Unit, onOpenPlus: () -> Unit, viewModel: PlanViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     val message by viewModel.message.collectAsState()
     var tab by rememberSaveable { mutableStateOf(0) }
@@ -73,9 +73,9 @@ fun PlanScreen(viewModel: PlanViewModel = hiltViewModel()) {
                 }
             }
             when (tab) {
-                0 -> BudgetTab(state, viewModel, onEditIncome = { editIncome = true })
+                0 -> BudgetTab(state, viewModel, onEditIncome = { editIncome = true }, onOpenTimeline = onOpenTimeline, onOpenPlus = onOpenPlus)
                 1 -> BillsTab(state, viewModel)
-                2 -> GoalTab(state, viewModel)
+                2 -> GoalTab(state, viewModel, onOpenPlus)
                 else -> RulesTab()
             }
             Spacer(Modifier.height(Spacing.xl))

@@ -77,6 +77,7 @@ fun AccountFormScreen(onDone: () -> Unit, viewModel: AccountFormViewModel = hilt
                     TinwardTextField(s.statementDay, { v -> viewModel.update { copy(statementDay = v.filter(Char::isDigit).take(2)) } }, "Statement day", numeric = true, modifier = Modifier.weight(1f))
                     TinwardTextField(s.dueDay, { v -> viewModel.update { copy(dueDay = v.filter(Char::isDigit).take(2)) } }, "Payment due day", numeric = true, modifier = Modifier.weight(1f))
                 }
+                TinwardTextField(s.apr, { v -> viewModel.update { copy(apr = v.filter { it.isDigit() || it == '.' }.take(6)) } }, "Interest rate, % a year (optional, for the debt planner)", numeric = true)
             }
             s.error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.negative) }
         }

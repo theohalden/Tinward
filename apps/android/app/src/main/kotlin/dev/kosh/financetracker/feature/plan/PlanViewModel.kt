@@ -13,6 +13,7 @@ import dev.kosh.financetracker.core.finance.Budgets
 import dev.kosh.financetracker.core.finance.FinanceCalculator
 import dev.kosh.financetracker.core.finance.Occurrence
 import dev.kosh.financetracker.core.finance.Recurrence
+import dev.kosh.financetracker.core.finance.Rollover
 import dev.kosh.financetracker.core.finance.RecurringItem
 import dev.kosh.financetracker.core.finance.SavingsGoal
 import dev.kosh.financetracker.core.model.Account
@@ -35,7 +36,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
 
-data class CategoryBudgetRow(val limit: BudgetLimit, val status: BudgetStatus)
+data class CategoryBudgetRow(val limit: BudgetLimit, val status: BudgetStatus, val carriedIn: BigDecimal = BigDecimal.ZERO, val paused: Boolean = false)
 
 data class PlanUiState(
     val selectedMonth: YearMonth = YearMonth.now(),
@@ -53,8 +54,12 @@ data class PlanUiState(
     val goals: List<SavingsGoal> = emptyList(),
     val accounts: List<Account> = emptyList(),
     val available: AvailableToSpend? = null,
+    val plus: Boolean = false,
+    val overallCarry: BigDecimal = BigDecimal.ZERO,
 ) {
-    val canAddCategoryBudget: Boolean get() = categoryBudgets.size < Budgets.FREE_CATEGORY_LIMIT
+    val canAddCategoryBudget: Boolean get() = plus || categoryBudgets.size < Budgets.FREE_CATEGORY_LIMIT
+    /** Goals that can still be worked on: all of them with Plus, otherwise only the first. */
+    val workableGoals: List<SavingsGoal> get() = goals.filter { !it.archived }.let { if (plus) it else it.take(1) }
     val activeGoal: SavingsGoal? get() = goals.firstOrNull { !it.archived }
 }
 
@@ -68,6 +73,7 @@ class PlanViewModel @Inject constructor(
     settings: SettingsStore,
     private val planning: PlanningRepository,
     accountRepository: AccountRepository,
+    entitlements: dev.kosh.financetracker.feature.plus.Entitlements,
 ) : ViewModel() {
     private val zone = ZoneId.systemDefault()
     private val month = MutableStateFlow<YearMonth?>(null)
@@ -87,7 +93,8 @@ class PlanViewModel @Inject constructor(
 
     private val planned = combine(planning.observeRecurring(), planning.observeBudgets(), planning.observeGoals(), accountRepository.observeAccounts()) { r, b, g, a -> listOf(r, b, g, a) }
 
-    val state: StateFlow<PlanUiState> = combine(base, planned) { b, p ->
+    val state: StateFlow<PlanUiState> = combine(base, planned, entitlements.tier) { b, p, tier ->
+        val plus = tier == dev.kosh.financetracker.feature.plus.Tier.PLUS
         @Suppress("UNCHECKED_CAST") val recurring = p[0] as List<RecurringItem>
         @Suppress("UNCHECKED_CAST") val budgets = p[1] as List<BudgetLimit>
         @Suppress("UNCHECKED_CAST") val goals = p[2] as List<SavingsGoal>
@@ -96,10 +103,19 @@ class PlanViewModel @Inject constructor(
         val windowEnd = today.withDayOfMonth(today.lengthOfMonth())
         val pending = recurring.flatMap { Recurrence.pending(it, b.tx, today, today.plusDays(45), zone) }.sortedBy { it.date }
         val overallLimit = budgets.firstOrNull { it.category == null && it.currency == b.currency }
+        val inCurrency = b.tx.filter { it.currency == b.currency }
+        val categoryBudgetList = budgets.filter { it.category != null && it.currency == b.currency }
+        fun carry(limit: BudgetLimit, spentIn: (YearMonth) -> BigDecimal): BigDecimal =
+            if (plus && limit.rollover && limit.start != null) Rollover.carryIn(limit.amount, limit.start, b.month, spentIn) else BigDecimal.ZERO
+        val overallCarry = overallLimit?.let { l -> carry(l) { ym -> FinanceCalculator.summaryForMonth(inCurrency, ym, zone).expense.max(BigDecimal.ZERO) } } ?: BigDecimal.ZERO
         PlanUiState(
             selectedMonth = b.month, availableMonths = b.months, monthsWithData = b.withData, currency = b.currency, income = b.income, spent = b.spent, rule = b.rule,
-            overall = overallLimit?.let { Budgets.overall(it.amount, b.spent) }, overallLimit = overallLimit,
-            categoryBudgets = budgets.filter { it.category != null && it.currency == b.currency }.map { CategoryBudgetRow(it, Budgets.category(it.amount, it.category!!, b.breakdown)) },
+            overall = overallLimit?.let { Budgets.overall(it.amount + overallCarry, b.spent) }, overallLimit = overallLimit, overallCarry = overallCarry,
+            categoryBudgets = categoryBudgetList.mapIndexed { index, l ->
+                val c = carry(l) { ym -> FinanceCalculator.categoryBreakdownForMonth(inCurrency, ym, zone).firstOrNull { it.category == l.category }?.amount ?: BigDecimal.ZERO }
+                CategoryBudgetRow(l, Budgets.category(l.amount + c, l.category!!, b.breakdown), c, paused = !plus && index >= Budgets.FREE_CATEGORY_LIMIT)
+            },
+            plus = plus,
             recurring = recurring, pending = pending, goals = goals, accounts = accounts,
             available = AvailableToSpendCalculator.compute(AccountLedger.positions(accounts, b.tx), pending, goals, b.currency, windowEnd),
         )
@@ -110,9 +126,9 @@ class PlanViewModel @Inject constructor(
     fun selectMonth(m: YearMonth) { month.value = m }
     fun setIncome(amount: BigDecimal?) { viewModelScope.launch { store.setMonthlyIncome(amount) } }
 
-    fun setOverallBudget(amount: BigDecimal?) { viewModelScope.launch { planning.setOverallBudget(amount, currency) } }
-    fun setCategoryBudget(category: TransactionCategory, amount: BigDecimal) {
-        viewModelScope.launch { message.value = planning.setCategoryBudget(category, amount, currency).exceptionOrNull()?.message }
+    fun setOverallBudget(amount: BigDecimal?, rollover: Boolean = false) { viewModelScope.launch { planning.setOverallBudget(amount, currency, rollover) } }
+    fun setCategoryBudget(category: TransactionCategory, amount: BigDecimal, rollover: Boolean = false) {
+        viewModelScope.launch { message.value = planning.setCategoryBudget(category, amount, currency, rollover).exceptionOrNull()?.message }
     }
     fun removeBudget(id: Long) { viewModelScope.launch { planning.removeBudget(id) } }
 

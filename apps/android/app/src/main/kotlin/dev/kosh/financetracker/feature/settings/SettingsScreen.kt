@@ -48,13 +48,14 @@ import dev.kosh.financetracker.ui.theme.Tinward
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCsv: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCsv: () -> Unit, onOpenPlus: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val appearance by viewModel.appearance.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
     val dollarCurrency by viewModel.dollarCurrency.collectAsState()
     val scan by viewModel.scan.collectAsState()
+    val plusTier by viewModel.entitlements.tier.collectAsState()
     var showCategories by remember { mutableStateOf(false) }
     var exportNote by remember { mutableStateOf<String?>(null) }
     var securityNote by remember { mutableStateOf<String?>(null) }
@@ -73,6 +74,11 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
                 when (appearance) { Appearance.SYSTEM -> 0; Appearance.LIGHT -> 1; Appearance.DARK -> 2 },
                 { viewModel.setAppearance(Appearance.values()[it]) },
             )
+
+            SectionLabel("Tinward Plus")
+            KoshCard {
+                ActionRow(if (plusTier == dev.kosh.financetracker.feature.plus.Tier.PLUS) "You have Tinward Plus" else "Tinward Plus", "Planning tools on top of everything in Free.") { onOpenPlus() }
+            }
 
             SectionLabel("Security")
             SecuritySection(viewModel.vault, viewModel.backup, securityNote) { securityNote = it }

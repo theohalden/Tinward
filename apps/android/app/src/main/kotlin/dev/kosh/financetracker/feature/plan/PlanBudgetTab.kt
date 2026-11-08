@@ -39,12 +39,22 @@ import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
 @Composable
-internal fun BudgetTab(state: PlanUiState, vm: PlanViewModel, onEditIncome: () -> Unit) {
+internal fun BudgetTab(state: PlanUiState, vm: PlanViewModel, onEditIncome: () -> Unit, onOpenTimeline: () -> Unit, onOpenPlus: () -> Unit) {
     var editOverall by remember { mutableStateOf(false) }
     var addCategory by remember { mutableStateOf(false) }
     var editingCategory by remember { mutableStateOf<CategoryBudgetRow?>(null) }
 
     AvailableCard(state)
+
+    KoshCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenTimeline)) {
+        Row(Modifier.fillMaxWidth().padding(Spacing.md), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Money Timeline", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                Text("Where your balance is heading over 30, 60 or 90 days", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+            }
+            Text("Plus", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.accentText)
+        }
+    }
 
     KoshCard {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -54,7 +64,7 @@ internal fun BudgetTab(state: PlanUiState, vm: PlanViewModel, onEditIncome: () -
                 Text("Set a limit for the whole month and Tinward shows how you are tracking against it.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
                 PrimaryButton("Set monthly budget", { editOverall = true }, Modifier.fillMaxWidth())
             } else {
-                BudgetLine("Overall", overall, state.currency)
+                BudgetLine("Overall", overall, state.currency, note = state.overallCarry.takeIf { it.signum() > 0 }?.let { "Includes ${formatMoney(it, currencyCode = state.currency)} carried over" })
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     SecondaryButton("Change", { editOverall = true }, Modifier.weight(1f))
                     SecondaryButton("Remove", { vm.setOverallBudget(null) }, Modifier.weight(1f))
@@ -62,15 +72,21 @@ internal fun BudgetTab(state: PlanUiState, vm: PlanViewModel, onEditIncome: () -
             }
             if (state.categoryBudgets.isNotEmpty()) HorizontalDivider(color = Tinward.colors.divider)
             state.categoryBudgets.forEach { row ->
-                Column(Modifier.fillMaxWidth().clickable { editingCategory = row }.padding(vertical = 2.dp)) {
-                    BudgetLine(labelFor(row.limit.category!!), row.status, state.currency)
+                Column(Modifier.fillMaxWidth().clickable { if (row.paused) onOpenPlus() else editingCategory = row }.padding(vertical = 2.dp)) {
+                    BudgetLine(
+                        labelFor(row.limit.category!!), row.status, state.currency, paused = row.paused,
+                        note = if (row.paused) "Paused \u00B7 needs Tinward Plus. Your budget is kept." else row.carriedIn.takeIf { it.signum() > 0 }?.let { "Includes ${formatMoney(it, currencyCode = state.currency)} carried over" },
+                    )
                 }
             }
             if (state.canAddCategoryBudget) {
                 SecondaryButton("Add a category budget", { addCategory = true }, Modifier.fillMaxWidth())
+            } else {
+                SecondaryButton("More category budgets with Plus", onOpenPlus, Modifier.fillMaxWidth())
             }
             Text(
-                "Free plan: one monthly budget and up to 3 category budgets. Transfers are never counted, and refunds reduce what you have spent.",
+                (if (state.plus) "Tinward Plus: unlimited category budgets, with rollover. " else "Free plan: one monthly budget and up to 3 category budgets. ") +
+                    "Transfers are never counted, and refunds reduce what you have spent.",
                 style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
             )
         }
@@ -78,14 +94,16 @@ internal fun BudgetTab(state: PlanUiState, vm: PlanViewModel, onEditIncome: () -
 
     IncomeAndRule(state, onEditIncome)
 
-    if (editOverall) AmountDialog(
+    if (editOverall) BudgetDialog(
         title = "Monthly budget", help = "The most you want to spend this month, across everything.",
-        initial = state.overallLimit?.amount?.toPlainString().orEmpty(), currency = state.currency, onDismiss = { editOverall = false },
-    ) { vm.setOverallBudget(it); editOverall = false }
+        initial = state.overallLimit?.amount?.toPlainString().orEmpty(), currency = state.currency, rolloverInitial = state.overallLimit?.rollover ?: false,
+        plus = state.plus, onOpenPlus = { editOverall = false; onOpenPlus() }, onDismiss = { editOverall = false }, onRemove = null,
+    ) { amount, roll -> vm.setOverallBudget(amount, roll); editOverall = false }
 
     if (addCategory) {
         var picked by remember { mutableStateOf<TransactionCategory?>(null) }
         var text by remember { mutableStateOf("") }
+        var rollNew by remember { mutableStateOf(false) }
         val taken = state.categoryBudgets.mapNotNull { it.limit.category }.toSet()
         val options = TransactionCategory.values().filter { it != TransactionCategory.UNCATEGORIZED && it !in taken }
         val amount = text.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
@@ -96,33 +114,37 @@ internal fun BudgetTab(state: PlanUiState, vm: PlanViewModel, onEditIncome: () -
                 Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     ChoiceChips(options, picked, { labelFor(it) }, { picked = it })
                     TinwardTextField(text, { t -> text = t.filter { it.isDigit() || it == '.' } }, "Monthly limit (${state.currency})", numeric = true)
+                    RolloverSwitch(rollNew, state.plus, onOpenPlus = { addCategory = false; onOpenPlus() }) { rollNew = it }
                 }
             },
-            confirmButton = { TextButton(enabled = picked != null && amount != null, onClick = { vm.setCategoryBudget(picked!!, amount!!); addCategory = false }) { Text("Save", color = Tinward.colors.accentText) } },
+            confirmButton = { TextButton(enabled = picked != null && amount != null, onClick = { vm.setCategoryBudget(picked!!, amount!!, rollNew); addCategory = false }) { Text("Save", color = Tinward.colors.accentText) } },
             dismissButton = { TextButton(onClick = { addCategory = false }) { Text("Cancel", color = Tinward.colors.textSecondary) } },
         )
     }
 
     editingCategory?.let { row ->
-        AmountDialog(
+        BudgetDialog(
             title = "${labelFor(row.limit.category!!)} budget", help = "Change the monthly limit, or remove it.",
-            initial = row.limit.amount.toPlainString(), currency = state.currency, onDismiss = { editingCategory = null },
+            initial = row.limit.amount.toPlainString(), currency = state.currency, rolloverInitial = row.limit.rollover,
+            plus = state.plus, onOpenPlus = { editingCategory = null; onOpenPlus() }, onDismiss = { editingCategory = null },
             onRemove = { vm.removeBudget(row.limit.id); editingCategory = null },
-        ) { amount -> amount?.let { vm.setCategoryBudget(row.limit.category!!, it) }; editingCategory = null }
+        ) { amount, roll -> amount?.let { vm.setCategoryBudget(row.limit.category!!, it, roll) }; editingCategory = null }
     }
 }
 
 @Composable
-private fun BudgetLine(label: String, status: BudgetStatus, currency: String) {
-    val color = when { status.over -> Tinward.colors.negative; status.warning -> Tinward.colors.accentText; else -> Tinward.colors.accent }
+private fun BudgetLine(label: String, status: BudgetStatus, currency: String, note: String? = null, paused: Boolean = false) {
+    val color = when { paused -> Tinward.colors.textTertiary; status.over -> Tinward.colors.negative; status.warning -> Tinward.colors.accentText; else -> Tinward.colors.accent }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = Tinward.colors.textPrimary)
             Text("${formatMoney(status.spent, currencyCode = currency)} of ${formatMoney(status.limit, currencyCode = currency)}", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textSecondary)
         }
         Bar(status.fraction.coerceIn(0f, 1f), color)
+        note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = if (paused) Tinward.colors.accentText else Tinward.colors.textTertiary) }
         Text(
             when {
+                paused -> "Not being tracked while Plus is off"
                 status.over -> "Over by ${formatMoney(status.remaining.abs(), currencyCode = currency)}"
                 status.warning -> "Nearly there: ${formatMoney(status.remaining, currencyCode = currency)} left"
                 else -> "${formatMoney(status.remaining, currencyCode = currency)} left"
@@ -245,6 +267,45 @@ internal fun AmountDialog(
             }
         },
         confirmButton = { TextButton(enabled = amount != null, onClick = { onSave(amount) }) { Text("Save", color = Tinward.colors.accentText) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = Tinward.colors.textSecondary) } },
+    )
+}
+
+@Composable
+private fun RolloverSwitch(checked: Boolean, plus: Boolean, onOpenPlus: () -> Unit, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = Spacing.sm)) {
+            Text(if (plus) "Roll unspent money forward" else "Roll unspent money forward (Plus)", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary)
+            Text("What you do not spend this month is added to next month's limit. Overspending never reduces it.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+        }
+        androidx.compose.material3.Switch(
+            checked = checked && plus, onCheckedChange = { if (plus) onChange(it) else onOpenPlus() },
+            colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = Tinward.colors.accent, checkedThumbColor = Tinward.colors.onAccent),
+        )
+    }
+}
+
+/** Budget amount entry with the Plus rollover option and an optional Remove. */
+@Composable
+private fun BudgetDialog(
+    title: String, help: String, initial: String, currency: String, rolloverInitial: Boolean, plus: Boolean, onOpenPlus: () -> Unit,
+    onDismiss: () -> Unit, onRemove: (() -> Unit)?, onSave: (BigDecimal?, Boolean) -> Unit,
+) {
+    var text by remember { mutableStateOf(initial) }
+    var roll by remember { mutableStateOf(rolloverInitial) }
+    val amount = text.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+    AlertDialog(
+        onDismissRequest = onDismiss, tonalElevation = 0.dp, containerColor = Tinward.colors.surface,
+        title = { Text(title, color = Tinward.colors.textPrimary) },
+        text = {
+            Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(help, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+                TinwardTextField(text, { t -> text = t.filter { it.isDigit() || it == '.' } }, "Amount ($currency)", numeric = true)
+                RolloverSwitch(roll, plus, onOpenPlus) { roll = it }
+                if (onRemove != null) TextButton(onClick = onRemove) { Text("Remove this budget", color = Tinward.colors.negative) }
+            }
+        },
+        confirmButton = { TextButton(enabled = amount != null, onClick = { onSave(amount, roll) }) { Text("Save", color = Tinward.colors.accentText) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = Tinward.colors.textSecondary) } },
     )
 }

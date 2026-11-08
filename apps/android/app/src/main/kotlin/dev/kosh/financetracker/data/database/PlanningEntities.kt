@@ -47,6 +47,10 @@ data class BudgetEntity(
     val category: TransactionCategory?,
     val amount: BigDecimal,
     val currency: String,
+    /** Plus: unspent money carries into the next month. */
+    val rollover: Boolean,
+    /** First day of the month rollover starts counting from. */
+    val startEpochDay: Long?,
 )
 
 @Entity(tableName = "savings_goals")

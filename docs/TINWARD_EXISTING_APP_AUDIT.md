@@ -151,3 +151,25 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 **Tests.** 251 unit tests pass (6 trend/comparison/card-due, 5 income basis, earlier suites). Verified on device: Home accounts strip, Insights chart, comparison and standing cards, the hero fix.
 
 **Not verified / open.** Card payment due rows on Home and the reminder entry for a card were verified by unit test only (the test card has no due day and is in credit). Dark mode and large-font layouts of the new cards were not checked. The chart has no tap-to-inspect and no accessibility description beyond text. Insights has no per-account filter.
+
+## 12. Slice 7 record: Tinward Plus (2026-11-08)
+
+**What is built and what is not.** Built and verified on device: entitlement and paywall, Money Timeline (30/60/90 days, assumptions, what-ifs), unlimited category budgets with rollover, several savings goals, Financial Review, credit card debt planner (payoff time, interest, avalanche vs snowball, utilisation history). **Not built:** custom automation rules with priority and undo; custom budget periods; loan tracking (needs a new liability account type that touches balances throughout); a utilisation or debt view for loans. These are not mentioned on the paywall.
+
+**Billing is NOT verified.** `BillingManager` uses Google Play Billing 7 against a subscription id `tinward_plus` (monthly and yearly base plans) that does not exist yet in Play Console, so on the test phone Play correctly reports no product and the paywall says Plus "cannot be bought from this build yet". The purchase, acknowledge, restore, cancellation, refund and expiry paths are written but have never run against Google Play. Before release: create the subscription, upload to an internal test track, and test purchase, restore, cancel, refund and offline expiry with licence testers. Prices are whatever Play returns; none are hard-coded.
+
+**Entitlement.** One source of truth (`Entitlements`), cached on the phone with no account or server. A Plus user who is offline keeps Plus for 7 days from the last successful check with Play; after that it falls back to Free until the next successful check. A cancellation or refund shows up the next time Play is asked (every app start). Debug builds only have a switch to turn Plus on for testing; release builds ignore it.
+
+**Downgrade (verified on device).** Nothing is deleted. A fourth and later category budget is kept, shown "Paused" and not tracked; a second and later goal is kept, shown "Paused" and its saved amount still held back from "available to spend"; rollover stops applying; Timeline, Financial Review and Debt planner show an explanation and a way to upgrade. Free features, data, export and backup are unaffected.
+
+**Schema.** v12 adds `budgets.rollover` and `budgets.startEpochDay`; v13 adds `accounts.apr`. All additive and nullable (or defaulted); existing rows behave as before.
+
+**Rollover.** Unspent money carries forward from the month the budget was created, accumulates, never goes below zero (overspending does not reduce the next month) and is capped at 24 months.
+
+**Money Timeline.** Starts from tracked asset balances; adds bills, income schedules and credit card payments (full balance on the due day, skipped if the card is already a bill); overdue items happen today; other currencies excluded and stated. Everyday spending is optional (average of recent non-bill spending). Every forecast shows as-of date, accounts, assumptions and what it excludes. What-ifs are never saved as transactions.
+
+**Debt planner.** Simple monthly model (interest once a month at APR/12; minimum = interest + 1% of the balance; no new spending). It is a planning aid, not an issuer statement. Cards without an interest rate are left out and flagged. Utilisation history shows a dash for months before tracking began instead of inventing a figure (found on the phone).
+
+**Tests.** 306 unit tests pass (entitlement policy 6, timeline 16, rollover 7, financial review 11, debt planner 15, earlier suites). Verified on device: v12/v13 upgrades on real data, paywall honesty, Plus on and off, Timeline numbers against a hand calculation, 4th budget and 2nd goal then downgrade, Financial Review on real data, Debt planner on a card set up for it.
+
+**Not verified / open.** Billing end to end (above). No automated migration tests for v9 to v13. Financial Review's "unnamed spending" note and Debt planner with two or more cards were covered by unit tests only. Dark mode and large fonts for the new screens not checked. Accessibility of the Timeline chart is a text description only.

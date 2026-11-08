@@ -27,7 +27,7 @@ object DatabaseModule {
         dev.kosh.financetracker.security.DatabaseEncryptor.loadNative()
         return Room.databaseBuilder(context, FinanceDatabase::class.java, FinanceDatabase.DB_NAME)
             .openHelperFactory(net.zetetic.database.sqlcipher.SupportOpenHelperFactory(passphrase))
-            .addMigrations(FinanceDatabase.MIGRATION_7_8, FinanceDatabase.MIGRATION_8_9, FinanceDatabase.MIGRATION_9_10, FinanceDatabase.MIGRATION_10_11)
+            .addMigrations(FinanceDatabase.MIGRATION_7_8, FinanceDatabase.MIGRATION_8_9, FinanceDatabase.MIGRATION_9_10, FinanceDatabase.MIGRATION_10_11, FinanceDatabase.MIGRATION_11_12, FinanceDatabase.MIGRATION_12_13)
             .build()
     }
 

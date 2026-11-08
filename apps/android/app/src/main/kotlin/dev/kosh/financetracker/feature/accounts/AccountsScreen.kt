@@ -36,6 +36,7 @@ import dev.kosh.financetracker.ui.theme.Tinward
 fun AccountsScreen(
     onOpenAccount: (Long) -> Unit,
     onAddAccount: () -> Unit,
+    onOpenDebt: () -> Unit,
     viewModel: AccountsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -70,6 +71,17 @@ fun AccountsScreen(
             }
             if (state.banks.isNotEmpty()) item { SectionLabel("Accounts") }
             items(state.banks.size) { i -> PositionCard(state.banks[i], onOpenAccount) }
+            if (state.cards.any { it.account.type == dev.kosh.financetracker.core.model.AccountType.CREDIT_CARD }) item {
+                KoshCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenDebt)) {
+                    Row(Modifier.fillMaxWidth().padding(Spacing.md), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Debt planner", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                            Text("Payoff time, interest and limit use for your cards", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+                        }
+                        Text("Plus", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.accentText)
+                    }
+                }
+            }
             if (state.cards.isNotEmpty()) item { SectionLabel("Cards") }
             items(state.cards.size) { i -> PositionCard(state.cards[i], onOpenAccount) }
             if (state.archived.isNotEmpty()) {
