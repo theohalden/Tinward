@@ -101,7 +101,7 @@ class AccountRepository @Inject constructor(
         return Account(
             name = "${bank ?: "Account"} \u2022\u2022$suffix",
             type = if (isCard) AccountType.CREDIT_CARD else AccountType.BANK,
-            institution = bank, last4 = suffix, currency = "INR",
+            institution = bank, last4 = suffix, currency = group.first().currency,
             openingBalance = opening.amount, openingDate = opening.date, sortOrder = order,
         )
     }

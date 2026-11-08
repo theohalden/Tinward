@@ -15,6 +15,8 @@ class TransactionParserRegistry @Inject constructor() {
         KotakParser(),
         SliceParser(),
         GenericUpiParser(),
+        // Last: English alerts from other countries and currencies.
+        GenericBankParser(),
     )
 
     fun parse(event: RawFinancialEvent): ParsedTransaction? {

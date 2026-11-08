@@ -14,6 +14,7 @@ import dev.kosh.financetracker.data.repository.TransactionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -34,6 +35,7 @@ class SmsReceiver : BroadcastReceiver() {
         fun vault(): dev.kosh.financetracker.security.Vault
         fun parserRegistry(): TransactionParserRegistry
         fun repository(): javax.inject.Provider<TransactionRepository>
+        fun settings(): dev.kosh.financetracker.data.settings.SettingsStore
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -71,7 +73,8 @@ class SmsReceiver : BroadcastReceiver() {
                     sourceIdentifier = sourceMessageId,
                 )
 
-                val parsed = parserRegistry.parse(event)
+                val dollar = deps.settings().dollarCurrency.first()
+                val parsed = parserRegistry.parse(event)?.let { it.copy(currency = dev.kosh.financetracker.core.parser.CurrencyResolution.resolve(it.currency, dollar)) }
                 if (parsed != null && parsed.direction != TransactionDirection.UNKNOWN) {
                     val transaction = parsed.toTransaction(sourceMessageId = sourceMessageId, rawSourceText = body)
                     val inserted = transactionRepository.saveIfNew(transaction)

@@ -46,3 +46,25 @@ fun CurrencyRow(current: String, onChange: (String) -> Unit) {
         confirmButton = { TextButton(onClick = { open = false }) { Text("Close", color = Tinward.colors.accentText) } },
     )
 }
+
+/** A bare "$" in a message could be several currencies; the user says which one their bank means. */
+@Composable
+fun DollarRow(current: String, onChange: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { open = true }.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Dollar sign on messages", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
+            Text("When a bank text says just \"$\", Tinward records it in this currency.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+        }
+        Text(current, style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+    }
+    if (open) AlertDialog(
+        onDismissRequest = { open = false }, tonalElevation = 0.dp, containerColor = Tinward.colors.surface,
+        title = { Text("What does \"$\" mean?", color = Tinward.colors.textPrimary) },
+        text = { ChoiceChips(dev.kosh.financetracker.core.parser.CurrencyResolution.DOLLAR_CURRENCIES, current, { it }, { onChange(it); open = false }) },
+        confirmButton = { TextButton(onClick = { open = false }) { Text("Close", color = Tinward.colors.accentText) } },
+    )
+}

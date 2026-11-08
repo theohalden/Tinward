@@ -22,6 +22,7 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
     private val appearanceKey = stringPreferencesKey("appearance")
     private val onboardedKey = booleanPreferencesKey("onboarded")
     private val currencyKey = stringPreferencesKey("base_currency")
+    private val dollarKey = stringPreferencesKey("dollar_currency")
     private val fixedImportedKey = booleanPreferencesKey("fixed_expenses_imported")
 
     val appearance: Flow<Appearance> = context.settingsDataStore.data.map {
@@ -36,6 +37,13 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
 
     val fixedExpensesImported: Flow<Boolean> = context.settingsDataStore.data.map { it[fixedImportedKey] ?: false }
     suspend fun markFixedExpensesImported() { context.settingsDataStore.edit { it[fixedImportedKey] = true } }
+
+    /** What a bare "$" in a bank message means for this user. */
+    val dollarCurrency: Flow<String> = context.settingsDataStore.data.map {
+        it[dollarKey] ?: dev.kosh.financetracker.core.parser.CurrencyResolution.defaultDollar(it[currencyKey] ?: "INR")
+    }
+
+    suspend fun setDollarCurrency(code: String) { context.settingsDataStore.edit { it[dollarKey] = code } }
 
     suspend fun setBaseCurrency(code: String) { context.settingsDataStore.edit { it[currencyKey] = code } }
 

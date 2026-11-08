@@ -202,8 +202,9 @@ private fun KoshApp() {
                 KoshDestination.Edit.route,
                 arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
             ) { AddTransactionScreen(onDone = { navController.popBackStack() }) }
+            composable(KoshDestination.ImportCsv.route) { dev.kosh.financetracker.feature.importcsv.ImportCsvScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Deleted.route) { dev.kosh.financetracker.feature.deleted.DeletedScreen(onBack = { navController.popBackStack() }) }
-            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }, onOpenDeleted = { navController.navigate(KoshDestination.Deleted.route) }) }
+            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }, onOpenDeleted = { navController.navigate(KoshDestination.Deleted.route) }, onOpenImportCsv = { navController.navigate(KoshDestination.ImportCsv.route) }) }
             composable(KoshDestination.Detail.route) {
                 TransactionDetailScreen(
                     onBack = { navController.popBackStack() },

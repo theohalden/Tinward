@@ -81,7 +81,7 @@ fun TransactionDetailScreen(
                 FieldRow("Account", account)
                 ParserFields.cardSuffix(current.rawSourceText.orEmpty())?.let { Divider(); FieldRow("Card", "••$it") }
                 Divider()
-                FieldRow("Source", when (current.source) { dev.kosh.financetracker.core.model.TransactionSource.SMS -> "Bank SMS"; dev.kosh.financetracker.core.model.TransactionSource.STATEMENT -> "Bank statement"; dev.kosh.financetracker.core.model.TransactionSource.MANUAL -> "Added by you"; else -> "Notification" })
+                FieldRow("Source", when (current.source) { dev.kosh.financetracker.core.model.TransactionSource.SMS -> "Bank SMS"; dev.kosh.financetracker.core.model.TransactionSource.STATEMENT -> "Bank statement"; dev.kosh.financetracker.core.model.TransactionSource.MANUAL -> "Added by you"; dev.kosh.financetracker.core.model.TransactionSource.CSV -> "Imported file"; else -> "Notification" })
                 current.reconciliationNote?.let { Divider(); FieldRow("Reconciliation", it) }
                 current.customLabel?.let { Divider(); FieldRow("Your label", it) }
                 current.notes?.takeIf { current.source == dev.kosh.financetracker.core.model.TransactionSource.MANUAL || current.refundOfId != null || it.isNotBlank() }?.let { n -> Divider(); FieldRow("Note", n) }

@@ -23,6 +23,7 @@ class SettingsViewModel @Inject constructor(
     private val settings: SettingsStore,
     private val repository: TransactionRepository,
     val vault: dev.kosh.financetracker.security.Vault,
+    private val syncManager: dev.kosh.financetracker.feature.sync.SmsSyncManager,
     val backup: dev.kosh.financetracker.security.BackupManager,
 ) : ViewModel() {
     val appearance: StateFlow<Appearance> = settings.appearance
@@ -30,6 +31,14 @@ class SettingsViewModel @Inject constructor(
 
     val baseCurrency: StateFlow<String> = settings.baseCurrency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "INR")
+
+    /** Counts only; no message text. */
+    val scan: StateFlow<dev.kosh.financetracker.feature.sync.SyncState> = syncManager.state
+
+    val dollarCurrency: StateFlow<String> = settings.dollarCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "USD")
+
+    fun setDollarCurrency(code: String) { viewModelScope.launch { settings.setDollarCurrency(code) } }
 
     fun setBaseCurrency(code: String) { viewModelScope.launch { settings.setBaseCurrency(code) } }
 

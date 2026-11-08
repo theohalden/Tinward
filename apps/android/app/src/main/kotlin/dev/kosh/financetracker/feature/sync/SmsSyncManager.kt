@@ -11,6 +11,7 @@ import dev.kosh.financetracker.data.sms.toRawFinancialEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CancellationException
@@ -41,6 +42,7 @@ class SmsSyncManager @Inject constructor(
     private val smsReader: SmsReader,
     private val parserRegistry: TransactionParserRegistry,
     private val transactionRepository: TransactionRepository,
+    private val settings: dev.kosh.financetracker.data.settings.SettingsStore,
 ) {
     private val _state = MutableStateFlow(SyncState())
     val state: StateFlow<SyncState> = _state.asStateFlow()
@@ -52,6 +54,7 @@ class SmsSyncManager @Inject constructor(
         try {
         val result = withContext(Dispatchers.IO) {
             val all = smsReader.readInboxMessages()
+            val dollar = settings.dollarCurrency.first()
             val financial = all.filter { FinancialMessageDetector.isFinancialMessage(it.body) }
 
             var imported = 0
@@ -59,7 +62,7 @@ class SmsSyncManager @Inject constructor(
             var unparsed = 0
             var unknownDirection = 0
             for (entry in financial) {
-                val parsed = parserRegistry.parse(entry.toRawFinancialEvent())
+                val parsed = parserRegistry.parse(entry.toRawFinancialEvent())?.let { it.copy(currency = dev.kosh.financetracker.core.parser.CurrencyResolution.resolve(it.currency, dollar)) }
                 if (parsed == null) {
                     unparsed++
                     continue

@@ -21,4 +21,6 @@ data class ParsedTransaction(
     val bank: String?,
     val cardSuffix: String?,
     val confidence: Double,
+    /** ISO 4217 code of [amount]. The India-specific parsers leave it at INR. */
+    val currency: String = "INR",
 )

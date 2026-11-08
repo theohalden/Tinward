@@ -27,6 +27,9 @@ object FinancialMessageDetector {
         "neft",
         "imps",
         "rtgs",
+        // Other countries and currencies: the parser decides what is real.
+        "purchase", "withdrawal", "withdrawn", "deposit", "charged", "payment", "refund", "paid",
+        "$", "£", "€", "¥", "usd", "eur", "gbp", "aud", "cad", "sgd", "aed", "nzd", "chf", "zar", "jpy",
     )
 
     fun isFinancialMessage(body: String): Boolean {

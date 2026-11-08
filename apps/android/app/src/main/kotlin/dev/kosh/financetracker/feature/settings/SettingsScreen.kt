@@ -48,11 +48,13 @@ import dev.kosh.financetracker.ui.theme.Tinward
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCsv: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val appearance by viewModel.appearance.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
+    val dollarCurrency by viewModel.dollarCurrency.collectAsState()
+    val scan by viewModel.scan.collectAsState()
     var showCategories by remember { mutableStateOf(false) }
     var exportNote by remember { mutableStateOf<String?>(null) }
     var securityNote by remember { mutableStateOf<String?>(null) }
@@ -84,6 +86,8 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, viewModel: Set
                     }
                 }
                 HorizontalDivider(color = Tinward.colors.divider)
+                ActionRow("Import a CSV file", "Add transactions from a statement you downloaded, any bank.") { onOpenImportCsv() }
+                HorizontalDivider(color = Tinward.colors.divider)
                 ActionRow("Recently deleted", "Restore transactions you removed.") { onOpenDeleted() }
                 HorizontalDivider(color = Tinward.colors.divider)
                 ActionRow("Categories", if (showCategories) "Tap to hide" else "${TransactionCategory.values().size - 1} categories") { showCategories = !showCategories }
@@ -102,13 +106,25 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, viewModel: Set
             SectionLabel("Privacy and access")
             KoshCard {
                 FieldRow("SMS access", if (smsGranted) "Allowed" else "Not allowed")
+                if (scan.hasSyncedOnce) {
+                    HorizontalDivider(color = Tinward.colors.divider)
+                    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        Text("Last message scan", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
+                        Text(
+                            "Checked ${scan.lastScannedCount} messages. Recorded ${scan.lastImportedCount} new, ${scan.lastAlreadyRepresentedCount} already known. " +
+                                "${scan.lastUnparsedCount + scan.lastUnknownDirectionCount} looked like bank messages but are in a format Tinward does not understand yet.",
+                            style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary,
+                        )
+                        Text("This report shows counts only. It never shows or stores message text.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+                    }
+                }
                 HorizontalDivider(color = Tinward.colors.divider)
                 ActionRow("Manage permissions", "Open Android app settings") {
                     context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
                 }
                 HorizontalDivider(color = Tinward.colors.divider)
                 Text(
-                    "Tinward reads bank SMS on this phone only. There is no account, no analytics and no network permission. Your data is encrypted on this phone and locked behind your PIN.",
+                    "Tinward reads bank SMS on this phone only. There is no account, no analytics and no network permission. Each message it records is kept, text included, inside your encrypted data so it can show why a transaction is there. It is never logged or sent anywhere, and it is protected by your PIN. Message reading works for the formats it has been tested on; where it cannot read a message, you can add the transaction by hand or import a CSV.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Tinward.colors.textTertiary,
                     modifier = Modifier.padding(Spacing.md),
@@ -118,6 +134,8 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, viewModel: Set
             SectionLabel("General")
             KoshCard {
                 dev.kosh.financetracker.feature.settings.CurrencyRow(baseCurrency, viewModel::setBaseCurrency)
+                HorizontalDivider(color = Tinward.colors.divider)
+                DollarRow(dollarCurrency, viewModel::setDollarCurrency)
                 HorizontalDivider(color = Tinward.colors.divider)
                 FieldRow("Version", version)
             }

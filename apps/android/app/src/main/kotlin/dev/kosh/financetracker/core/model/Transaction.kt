@@ -70,6 +70,8 @@ enum class TransactionSource {
      * from a message — treated as ground truth for the account+month it covers,
      * superseding whatever SMS parsing produced for that same window. */
     STATEMENT,
+    /** Imported from a CSV file the user mapped by hand. Never treated as a bank-verified statement. */
+    CSV,
 }
 
 data class Transaction(

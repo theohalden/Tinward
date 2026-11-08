@@ -13,8 +13,14 @@ object IncomeClassifier {
         "salary", "sal credit", "sal.credit", "payroll", "wages", "stipend", "sal cr",
     )
 
+    /** Whole-word matches, so "denomination" never reads as "nomina". */
+    private val SALARY_WORDS = Regex(
+        """\b(gehalt|lohn|salaire|paie|nomina|n\u00f3mina|stipendio|salario|sal\u00e1rio|salaris|loon|vencimiento)\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
     fun isLikelySalary(merchant: String?, rawSourceText: String?): Boolean {
         val haystack = "${merchant.orEmpty()} ${rawSourceText.orEmpty()}".lowercase()
-        return SALARY_KEYWORDS.any { haystack.contains(it) }
+        return SALARY_KEYWORDS.any { haystack.contains(it) } || SALARY_WORDS.containsMatchIn(haystack)
     }
 }

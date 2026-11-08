@@ -35,4 +35,12 @@ class IncomeClassifierTest {
     fun `does not treat a merchant refund as salary`() {
         assertFalse(IncomeClassifier.isLikelySalary(merchant = "AMAZON REFUND", rawSourceText = "Rs.500 credited"))
     }
+
+    @Test
+    fun `salary words in other languages count and partial words do not`() {
+        assertTrue(IncomeClassifier.isLikelySalary("Gehalt November", null))
+        assertTrue(IncomeClassifier.isLikelySalary("VIREMENT SALAIRE ACME", null))
+        assertTrue(IncomeClassifier.isLikelySalary("N\u00d3MINA EMPRESA SL", null))
+        assertFalse(IncomeClassifier.isLikelySalary("Denomination fee", null))
+    }
 }
