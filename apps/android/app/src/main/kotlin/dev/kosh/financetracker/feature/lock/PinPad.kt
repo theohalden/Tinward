@@ -28,12 +28,12 @@ import dev.kosh.financetracker.ui.theme.Tinward
 fun PinDots(count: Int, error: Boolean = false, modifier: Modifier = Modifier) {
     Row(
         modifier.semantics { contentDescription = "$count of ${VaultCore.PIN_LENGTH} digits entered" },
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         repeat(VaultCore.PIN_LENGTH) { i ->
             val filled = i < count
             Box(
-                Modifier.size(16.dp).clip(CircleShape)
+                Modifier.size(12.dp).clip(CircleShape)
                     .then(if (filled) Modifier.background(if (error) Tinward.colors.negative else Tinward.colors.accent)
                           else Modifier.border(1.5.dp, if (error) Tinward.colors.negative else Tinward.colors.divider, CircleShape)),
             )
@@ -53,14 +53,14 @@ fun NumPad(
     modifier: Modifier = Modifier,
     bottomLeft: (@Composable () -> Unit)? = null,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         listOf("123", "456", "789").forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                 row.forEach { d -> Key(d.toString(), enabled) { onDigit(d) } }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(76.dp), contentAlignment = Alignment.Center) { bottomLeft?.invoke() }
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(60.dp), contentAlignment = Alignment.Center) { bottomLeft?.invoke() }
             Key("0", enabled) { onDigit('0') }
             Key("⌫", enabled, description = "Delete") { onDelete() }
         }
@@ -70,14 +70,14 @@ fun NumPad(
 @Composable
 private fun Key(label: String, enabled: Boolean, description: String? = null, onClick: () -> Unit) {
     Box(
-        Modifier.size(76.dp).clip(CircleShape).background(Tinward.colors.surface)
+        Modifier.size(60.dp).clip(CircleShape).background(Tinward.colors.surface)
             .border(1.dp, Tinward.colors.divider, CircleShape)
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { contentDescription = description ?: label },
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            label, style = MaterialTheme.typography.titleLarge.copy(fontSize = 28.sp),
+            label, style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
             color = if (enabled) Tinward.colors.textPrimary else Tinward.colors.textTertiary,
         )
     }

@@ -125,9 +125,9 @@ fun UnlockScreen(viewModel: LockViewModel) {
             .verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(Spacing.xl))
+        Spacer(Modifier.height(Spacing.lg))
         KoshWordmark()
-        Spacer(Modifier.height(Spacing.xl))
+        Spacer(Modifier.height(Spacing.lg))
         Text("Enter your PIN", style = MaterialTheme.typography.headlineMedium, color = Tinward.colors.textPrimary)
         Spacer(Modifier.height(Spacing.lg))
         PinDots(entry.length, error = ui.error != null)
@@ -135,7 +135,7 @@ fun UnlockScreen(viewModel: LockViewModel) {
         Text(
             if (waitSeconds > 0) "Too many attempts. Try again in ${waitSeconds}s." else if (ui.busy) "Unlocking\u2026" else ui.error ?: " ",
             style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.negative, textAlign = TextAlign.Center,
-            modifier = Modifier.height(48.dp),
+            modifier = Modifier.height(40.dp),
         )
         Spacer(Modifier.height(Spacing.sm))
         NumPad(
