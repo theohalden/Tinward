@@ -80,7 +80,15 @@ fun AddTransactionScreen(onDone: () -> Unit, viewModel: AddTransactionViewModel 
                 selectedIndex = if (state.direction == TransactionDirection.DEBIT) 0 else 1,
                 onSelect = { viewModel.setDirection(if (it == 0) TransactionDirection.DEBIT else TransactionDirection.CREDIT) },
             )
-            TinwardTextField(state.amountText, viewModel::setAmount, label = "Amount", prefix = "₹", numeric = true, placeholder = "0.00")
+            if (state.accounts.isNotEmpty()) {
+                SectionLabel("Account")
+                dev.kosh.financetracker.ui.components.ChoiceChips(state.accounts, state.account, { it.name }, { viewModel.setAccount(it.id) })
+            }
+            TinwardTextField(
+                state.amountText, viewModel::setAmount, label = "Amount",
+                prefix = runCatching { java.util.Currency.getInstance(state.currency).getSymbol(Locale.getDefault()) }.getOrDefault(state.currency),
+                numeric = true, placeholder = "0.00",
+            )
             TinwardTextField(state.label, viewModel::setLabel, label = "What was this for? (optional)", placeholder = "e.g. Groceries")
 
             Column(

@@ -62,6 +62,7 @@ fun SecuritySection(vault: Vault, backup: BackupManager, note: String?, onNote: 
     val autoLock by vault.autoLock.collectAsState()
     val secureScreen by vault.secureScreen.collectAsState()
     var bio by remember { mutableStateOf(vault.biometricEnabled) }
+    var pickingAutoLock by remember { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Dialog>(Dialog.None) }
     var pendingBackupPass by remember { mutableStateOf<CharArray?>(null) }
     val bioAvailable = remember(activity) { activity != null && BiometricKeys.canUse(activity) }
@@ -104,10 +105,7 @@ fun SecuritySection(vault: Vault, backup: BackupManager, note: String?, onNote: 
             }
         }
         HorizontalDivider(color = Tinward.colors.divider)
-        Row2("Auto-lock", autoLock.label) {
-            val all = AutoLock.values()
-            vault.setAutoLock(all[(autoLock.ordinal + 1) % all.size])
-        }
+        Row2("Auto-lock", autoLock.label) { pickingAutoLock = true }
         HorizontalDivider(color = Tinward.colors.divider)
         SwitchRow("Hide app in recents and block screenshots", "Stops the app preview showing your money in the task switcher.", secureScreen) { vault.setSecureScreen(it) }
     }
@@ -120,6 +118,13 @@ fun SecuritySection(vault: Vault, backup: BackupManager, note: String?, onNote: 
             Row2("Restore from backup", "Replaces everything on this phone with the backup.") { openLauncher.launch(arrayOf("*/*")) }
         }
     }
+
+    if (pickingAutoLock) AlertDialog(
+        onDismissRequest = { pickingAutoLock = false }, tonalElevation = 0.dp, containerColor = Tinward.colors.surface,
+        title = { Text("Lock the app", color = Tinward.colors.textPrimary) },
+        text = { dev.kosh.financetracker.ui.components.ChoiceChips(AutoLock.values().toList(), autoLock, { it.label }, { vault.setAutoLock(it); pickingAutoLock = false }) },
+        confirmButton = { TextButton(onClick = { pickingAutoLock = false }) { Text("Close", color = Tinward.colors.accentText) } },
+    )
 
     when (val d = dialog) {
         Dialog.None -> Unit

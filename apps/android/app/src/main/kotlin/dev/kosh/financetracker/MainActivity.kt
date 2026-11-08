@@ -32,6 +32,8 @@ import dev.kosh.financetracker.feature.lock.UnlockScreen
 import dev.kosh.financetracker.security.LockState
 import dev.kosh.financetracker.security.Vault
 import dev.kosh.financetracker.data.settings.Appearance
+import dev.kosh.financetracker.feature.accounts.AccountDetailScreen
+import dev.kosh.financetracker.feature.accounts.AccountFormScreen
 import dev.kosh.financetracker.feature.accounts.AccountsScreen
 import dev.kosh.financetracker.feature.addtransaction.AddTransactionScreen
 import dev.kosh.financetracker.feature.detail.TransactionDetailScreen
@@ -71,6 +73,8 @@ class MainActivity : FragmentActivity() {
         setContent {
             val appearance by shell.appearance.collectAsState()
             val onboarded by shell.onboarded.collectAsState()
+            val baseCurrency by shell.baseCurrency.collectAsState()
+            androidx.compose.runtime.SideEffect { dev.kosh.financetracker.ui.format.BaseCurrency.code = baseCurrency }
             val lockState by vault.state.collectAsState()
             val secureScreen by vault.secureScreen.collectAsState()
             // Hides the app in the recents switcher and blocks screenshots/screen recording.
@@ -161,7 +165,26 @@ private fun KoshApp() {
                 TrailScreen(onOpenTransaction = { id -> navController.navigate(KoshDestination.Detail.createRoute(id)) })
             }
             composable(KoshDestination.Plan.route) { PlanScreen() }
-            composable(KoshDestination.Accounts.route) { AccountsScreen() }
+            composable(KoshDestination.Accounts.route) {
+                AccountsScreen(
+                    onOpenAccount = { id -> navController.navigate(KoshDestination.AccountDetail.createRoute(id)) },
+                    onAddAccount = { navController.navigate(KoshDestination.AccountForm.createRoute()) },
+                )
+            }
+            composable(
+                KoshDestination.AccountDetail.route,
+                arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
+            ) {
+                AccountDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onEdit = { id -> navController.navigate(KoshDestination.AccountForm.createRoute(id)) },
+                    onOpenTransaction = { id -> navController.navigate(KoshDestination.Detail.createRoute(id)) },
+                )
+            }
+            composable(
+                KoshDestination.AccountForm.route,
+                arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
+            ) { AccountFormScreen(onDone = { navController.popBackStack() }) }
             composable(KoshDestination.Insights.route) { InsightsScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Review.route) { ReviewScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Add.route) { AddTransactionScreen(onDone = { navController.popBackStack() }) }

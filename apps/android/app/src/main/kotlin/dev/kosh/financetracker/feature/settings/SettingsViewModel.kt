@@ -28,6 +28,11 @@ class SettingsViewModel @Inject constructor(
     val appearance: StateFlow<Appearance> = settings.appearance
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Appearance.SYSTEM)
 
+    val baseCurrency: StateFlow<String> = settings.baseCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "INR")
+
+    fun setBaseCurrency(code: String) { viewModelScope.launch { settings.setBaseCurrency(code) } }
+
     fun setAppearance(value: Appearance) { viewModelScope.launch { settings.setAppearance(value) } }
 
     suspend fun buildExport(context: Context): Intent? = withContext(Dispatchers.IO) {

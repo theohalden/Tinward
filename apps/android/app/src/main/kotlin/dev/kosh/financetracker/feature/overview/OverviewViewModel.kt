@@ -47,6 +47,7 @@ class OverviewViewModel @Inject constructor(
     private val repository: TransactionRepository,
     private val syncManager: SmsSyncManager,
     budgetStore: FixedBudgetStore,
+    settings: dev.kosh.financetracker.data.settings.SettingsStore,
 ) : ViewModel() {
 
     private val zone = ZoneId.systemDefault()
@@ -57,7 +58,10 @@ class OverviewViewModel @Inject constructor(
         selectedMonth,
         budgetStore.monthlyIncome,
         budgetStore.expenses,
-    ) { transactions, explicitMonth, plannedIncome, fixed ->
+        settings.baseCurrency,
+    ) { allTransactions, explicitMonth, plannedIncome, fixed, base ->
+        // Totals never mix currencies: Home shows the base currency only.
+        val transactions = allTransactions.filter { it.currency == base }
         val month = explicitMonth ?: YearMonth.now(zone)
         val monthsWithData = FinanceCalculator.monthsWithData(transactions, zone)
         // Always at least a real rolling window so the selector is genuinely

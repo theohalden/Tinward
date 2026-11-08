@@ -24,6 +24,8 @@ enum class TransactionType {
     CASH_DEPOSIT,
     FEE,
     INTEREST_INCOME,
+    /** User-recorded correction so tracked balance matches the real one. Never income or spending. */
+    ADJUSTMENT,
     UNKNOWN,
 }
 
@@ -104,4 +106,8 @@ data class Transaction(
     /** Display-only reconciliation state; original evidence is never rewritten. */
     val reconciliationNote: String? = null,
     val isUnmatchedOverlap: Boolean = false,
+    /** ISO 4217 code of [amount]. Totals never mix currencies. */
+    val currency: String = "INR",
+    /** Shared by the two legs of a transfer between the user's own accounts. */
+    val transferGroupId: String? = null,
 )

@@ -33,6 +33,7 @@ class LockViewModel @Inject constructor(
     // Lazy: these reach the encrypted database, which must not be opened before unlock.
     private val sms: Lazy<SmsSyncManager>,
     private val budget: Lazy<FixedBudgetStore>,
+    private val linker: Lazy<dev.kosh.financetracker.data.repository.AccountLinker>,
 ) : ViewModel() {
     private val _ui = MutableStateFlow(LockUi())
     val ui: StateFlow<LockUi> = _ui.asStateFlow()
@@ -87,6 +88,7 @@ class LockViewModel @Inject constructor(
     private fun afterUnlock() {
         viewModelScope.launch {
             runCatching { budget.get().encryptLegacyValues() }
+            linker.get().start(viewModelScope)
             val smsOk = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
             if (vault.smsMissedWhileLocked && smsOk) {
                 vault.smsMissedWhileLocked = false

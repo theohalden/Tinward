@@ -37,13 +37,15 @@ data class PlanUiState(
 class PlanViewModel @Inject constructor(
     repository: TransactionRepository,
     private val store: FixedBudgetStore,
+    settings: dev.kosh.financetracker.data.settings.SettingsStore,
 ) : ViewModel() {
     private val zone = ZoneId.systemDefault()
     private val month = MutableStateFlow<YearMonth?>(null)
 
     val state: StateFlow<PlanUiState> = combine(
-        repository.observeTransactions(), store.monthlyIncome, store.expenses, month,
-    ) { tx, income, fixed, explicit ->
+        repository.observeTransactions(), store.monthlyIncome, store.expenses, month, settings.baseCurrency,
+    ) { allTx, income, fixed, explicit, base ->
+        val tx = allTx.filter { it.currency == base }
         val m = explicit ?: YearMonth.now(zone)
         val withData = FinanceCalculator.monthsWithData(tx, zone)
         PlanUiState(

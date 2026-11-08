@@ -27,13 +27,17 @@ object DatabaseModule {
         dev.kosh.financetracker.security.DatabaseEncryptor.loadNative()
         return Room.databaseBuilder(context, FinanceDatabase::class.java, FinanceDatabase.DB_NAME)
             .openHelperFactory(net.zetetic.database.sqlcipher.SupportOpenHelperFactory(passphrase))
-            .addMigrations(FinanceDatabase.MIGRATION_7_8)
+            .addMigrations(FinanceDatabase.MIGRATION_7_8, FinanceDatabase.MIGRATION_8_9)
             .build()
     }
 
     @Provides
     fun provideTransactionDao(database: FinanceDatabase): TransactionDao =
         database.transactionDao()
+
+    @Provides
+    fun provideAccountDao(database: FinanceDatabase): dev.kosh.financetracker.data.database.AccountDao =
+        database.accountDao()
 
     @Provides
     fun provideMerchantCategoryMappingDao(database: FinanceDatabase): MerchantCategoryMappingDao =

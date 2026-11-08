@@ -640,13 +640,16 @@ private fun ComingUpCard(
 
 @Composable
 private fun RecentActivityRow(transaction: Transaction, amountsHidden: Boolean, onClick: () -> Unit) {
-    val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT
+    val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT ||
+        transaction.type == TransactionType.CASH_WITHDRAWAL || transaction.type == TransactionType.ADJUSTMENT
     val isDebit = transaction.direction == TransactionDirection.DEBIT
     val merchant = transaction.merchant ?: "Unknown"
     val subtitle = when (transaction.type) {
         TransactionType.CREDIT_CARD_PAYMENT -> "Card repayment \u00B7 not spending"
         TransactionType.CREDIT_CARD_PURCHASE -> "Card purchase"
         TransactionType.TRANSFER -> "Transfer \u00B7 not spending"
+        TransactionType.ADJUSTMENT -> "Balance adjustment \u00B7 not income"
+        TransactionType.CASH_WITHDRAWAL -> "Moved to cash \u00B7 not spending"
         else -> transaction.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy"))
     }
     val amountColor = when {
@@ -654,7 +657,7 @@ private fun RecentActivityRow(transaction: Transaction, amountsHidden: Boolean, 
         isDebit -> Tinward.colors.textPrimary
         else -> Tinward.colors.positive
     }
-    val amountText = formatSignedMoney(transaction.amount, if (isTransfer) null else isDebit, amountsHidden)
+    val amountText = formatSignedMoney(transaction.amount, if (isTransfer) null else isDebit, amountsHidden, transaction.currency)
 
     Row(
         modifier = Modifier

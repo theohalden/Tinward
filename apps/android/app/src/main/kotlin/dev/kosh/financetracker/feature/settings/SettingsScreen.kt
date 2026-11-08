@@ -52,6 +52,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val appearance by viewModel.appearance.collectAsState()
+    val baseCurrency by viewModel.baseCurrency.collectAsState()
     var showCategories by remember { mutableStateOf(false) }
     var exportNote by remember { mutableStateOf<String?>(null) }
     var securityNote by remember { mutableStateOf<String?>(null) }
@@ -114,7 +115,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
 
             SectionLabel("General")
             KoshCard {
-                FieldRow("Currency", "Indian Rupee (₹)")
+                dev.kosh.financetracker.feature.settings.CurrencyRow(baseCurrency, viewModel::setBaseCurrency)
                 HorizontalDivider(color = Tinward.colors.divider)
                 FieldRow("Version", version)
             }

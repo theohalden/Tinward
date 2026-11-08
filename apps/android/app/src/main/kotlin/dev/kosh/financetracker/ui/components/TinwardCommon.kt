@@ -202,3 +202,30 @@ fun FieldRow(label: String, value: String, modifier: Modifier = Modifier) {
         Text(value, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textPrimary, maxLines = 2)
     }
 }
+
+
+/** Wrapping row of single-choice pills (used for account type, currency, account pickers). */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+fun <T> ChoiceChips(options: List<T>, selected: T?, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        options.forEach { o ->
+            val on = o == selected
+            Text(
+                label(o),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (on) Tinward.colors.onAccent else Tinward.colors.textPrimary,
+                modifier = Modifier
+                    .heightIn(min = 44.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(if (on) Tinward.colors.accent else Tinward.colors.raised)
+                    .clickable { onSelect(o) }
+                    .padding(horizontal = Spacing.md, vertical = Spacing.ms),
+            )
+        }
+    }
+}

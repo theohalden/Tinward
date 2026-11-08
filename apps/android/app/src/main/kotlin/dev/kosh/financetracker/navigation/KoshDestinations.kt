@@ -9,6 +9,12 @@ sealed class KoshDestination(val route: String) {
     object Review : KoshDestination("review")
     object Add : KoshDestination("add")
     object Settings : KoshDestination("settings")
+    object AccountDetail : KoshDestination("account/{id}") {
+        fun createRoute(id: Long) = "account/$id"
+    }
+    object AccountForm : KoshDestination("account_form/{id}") {
+        fun createRoute(id: Long = 0) = "account_form/$id"
+    }
     object Detail : KoshDestination("detail/{transactionId}") {
         const val ARG_TRANSACTION_ID = "transactionId"
         fun createRoute(transactionId: Long) = "detail/$transactionId"
@@ -28,4 +34,6 @@ val FULL_SCREEN_ROUTES = setOf(
     KoshDestination.Detail.route,
     KoshDestination.Add.route,
     KoshDestination.Settings.route,
+    KoshDestination.AccountDetail.route,
+    KoshDestination.AccountForm.route,
 )

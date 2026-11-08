@@ -28,10 +28,10 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 | Statement import (HDFC xls, Kotak csv, Slice xlsx) | P | Bank-specific parsers, not a general CSV mapper. No column-mapping UI. |
 | CSV export | P | Writes 11-column file and shares it; share flow not exercised on device |
 | Budget | P | One monthly income, fixed-expense list, 50/30/20 breakdown. No per-category budgets, no rollover. |
-| Accounts | P | Accounts are derived from `bank` + `accountSuffix` on transactions. There is no account entity, no opening balance, no manual create/edit/archive, no transfer legs. |
-| Cards (debit/credit) | M | Only a `CREDIT_CARD_PURCHASE` / `CREDIT_CARD_PAYMENT` transaction type. No card record, limit, statement or due dates. |
+| Accounts | V | **Slice 2.** Real `accounts` table (bank, cash, wallet, other). Create, edit, archive/restore, reorder (repository), opening balance, per-account currency, transfers as two linked legs, balance correction as an ADJUSTMENT entry. Existing accounts discovered from messages on first unlock. Verified on device: migration 8→9 on real data, discovery, correct balance, pay card. |
+| Cards (debit/credit) | P | **Slice 2.** Credit card: owed amount, limit, available, utilisation %, statement and due day, payments as transfers (not spending). Debit card linked to a bank account, no balance of its own. Verified on device: credit card creation and payment. **Missing:** due-date reminders, SMS-to-card matching beyond last-four, debit-card flow on device. |
 | Categories | P | Built-in set and merchant-to-category mapping entity. No custom categories. |
-| Currency | M | INR is hard-coded in formatting; no currency on transactions. |
+| Currency | P | **Slice 2.** Currency on every transaction and account; main-currency setting; Home, Insights and Plan total in the main currency only; transfers between currencies refused; no FX. **Missing:** currency step in onboarding, non-India SMS parsing (Slice 5). |
 | Recurring bills, reminders, goals | M | Fixed expenses are a static list, not schedules. |
 | Search, filter, split | P | Verify; split is not supported by the model. |
 | App lock (PIN/biometric) | P | **Slice 1.** Mandatory PIN (6+ digits or passphrase, weak PINs rejected), PBKDF2-SHA256 310k + AES-GCM key wrap, escalating throttle (never wipes), lock on cold start and after auto-lock timeout, `FLAG_SECURE` on lock screens. Verified on device: setup, weak-PIN rejection, wrong PIN, unlock, auto-lock at 36s, no lock at 5s. **Biometric unlock is built but unverified** (needs a person to enrol/touch the sensor). |
@@ -79,3 +79,17 @@ Legend: V = verified on device, P = partial, M = missing, B = blocked/needs deci
 **Tests.** `VaultCoreTest` (10) and `BackupCodecTest` (6) plus the existing suite: 130 unit tests pass. Covered: key wrap round trip, wrong PIN, throttle escalation and persistence across process death, PIN change keeps data, weak PIN rejection, tampered key fails closed, backup round trip, plaintext absent from file, wrong passphrase, flipped byte anywhere, truncation, non-backup input.
 
 **Not verified.** Biometric enrol/unlock; SMS arriving while locked; reboot behaviour; restore onto a second device; large databases (tested with 33 transactions); TalkBack on the lock screen; the "hide in recents" switch turned on (lock screens were confirmed hidden from screenshots); the setup crash-recovery paths other than "setup interrupted before conversion".
+
+## 7. Slice 2 record: accounts, cards, currency, ledger (2026-11-08)
+
+**Schema (Room v8 → v9, `MIGRATION_8_9`).** New `accounts` table; `transactions` gains `currency` (NOT NULL DEFAULT 'INR') and `transferGroupId`. Existing rows keep all data. `TransactionType` gains `ADJUSTMENT` (stored by name, so older rows are unaffected). The existing `transactions.accountId` column, unused until now, is the link.
+
+**Discovery.** After unlock, `AccountLinker` attaches rows that have a bank and last-four but no account. One matching account is reused, none creates one, an ambiguous match is left alone. This is a deliberate deviation from "ask the user on ambiguity" for the *create* case, so existing users keep seeing their accounts; ambiguous matches are never guessed.
+
+**Opening balance rule (`AccountBootstrap`).** If a message or statement reported a real balance, tracked balance is anchored to it. If none ever did, the account starts at zero from today and the screen asks the user to set the real balance. This replaced a first version that summed partial history and produced a misleading −₹96,244 on a real account.
+
+**Ledger (`AccountLedger`, pure, 17 tests).** Asset balance = opening + net; card owed = opening − net; debit card moves its linked bank only; transfers, card payments and cash withdrawals are neutral to income and spending; refunds and adjustments reverse or correct without counting as income; foreign-currency rows never enter another currency's balance; archived accounts leave net worth; rows before the opening date are already inside the opening amount.
+
+**Tests.** 152 unit tests pass (17 ledger, 4 bootstrap, the rest earlier).
+
+**Not verified / open.** Debit-card creation and spending on device; editing an account on device; reorder UI (repository only); transfer between two currencies is refused in code and tested but not shown on device; the migration was exercised on one real database (restored v8 backup) and has no automated migration test; large histories; reminders for card due dates (Slice 4); non-India SMS parsing and raw-SMS retention (Slice 5). The Add-transaction account picker compiles but was not exercised on device.

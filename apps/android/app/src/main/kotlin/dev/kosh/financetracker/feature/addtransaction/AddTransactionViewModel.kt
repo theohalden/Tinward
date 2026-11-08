@@ -9,7 +9,11 @@ import dev.kosh.financetracker.core.model.TransactionCategory
 import dev.kosh.financetracker.core.model.TransactionDirection
 import dev.kosh.financetracker.core.model.TransactionSource
 import dev.kosh.financetracker.core.model.TransactionType
+import dev.kosh.financetracker.core.model.Account
+import dev.kosh.financetracker.core.model.AccountType
+import dev.kosh.financetracker.data.repository.AccountRepository
 import dev.kosh.financetracker.data.repository.TransactionRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +33,11 @@ data class AddTransactionUiState(
     val date: LocalDate = LocalDate.now(),
     val category: TransactionCategory? = null,
     val saved: Boolean = false,
+    val accounts: List<Account> = emptyList(),
+    val accountId: Long? = null,
 ) {
+    val account: Account? get() = accounts.firstOrNull { it.id == accountId }
+    val currency: String get() = account?.currency ?: "INR"
     val amount: BigDecimal? get() = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
     val canSave: Boolean get() = amount != null && category != null
 }
@@ -37,9 +45,19 @@ data class AddTransactionUiState(
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
     private val repository: TransactionRepository,
+    private val accountRepository: AccountRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(AddTransactionUiState())
     val state: StateFlow<AddTransactionUiState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val list = accountRepository.observeAccounts().first().filter { !it.archived }
+            _state.update { it.copy(accounts = list, accountId = list.firstOrNull()?.id) }
+        }
+    }
+
+    fun setAccount(id: Long) = _state.update { it.copy(accountId = id) }
 
     fun setDirection(d: TransactionDirection) = _state.update { it.copy(direction = d) }
     fun setAmount(text: String) = _state.update { s ->
@@ -66,13 +84,18 @@ class AddTransactionViewModel @Inject constructor(
                     timestamp = timestamp,
                     amount = amount,
                     direction = s.direction,
-                    type = if (s.direction == TransactionDirection.DEBIT) TransactionType.EXPENSE else TransactionType.INCOME,
+                    type = when {
+                        s.account?.type == AccountType.CREDIT_CARD && s.direction == TransactionDirection.DEBIT -> TransactionType.CREDIT_CARD_PURCHASE
+                        s.account?.type == AccountType.CREDIT_CARD -> TransactionType.REFUND
+                        s.direction == TransactionDirection.DEBIT -> TransactionType.EXPENSE
+                        else -> TransactionType.INCOME
+                    },
                     category = category,
                     merchant = merchant,
                     rawMerchant = merchant,
-                    accountId = null,
-                    accountSuffix = null,
-                    bank = null,
+                    accountId = s.account?.id,
+                    accountSuffix = s.account?.last4,
+                    bank = s.account?.institution,
                     paymentMethod = PaymentMethod.UNKNOWN,
                     source = TransactionSource.MANUAL,
                     sourceMessageId = null,
@@ -80,6 +103,7 @@ class AddTransactionViewModel @Inject constructor(
                     confidence = 1.0,
                     notes = null,
                     createdAt = now,
+                    currency = s.currency,
                 ),
             )
             _state.update { it.copy(saved = true) }

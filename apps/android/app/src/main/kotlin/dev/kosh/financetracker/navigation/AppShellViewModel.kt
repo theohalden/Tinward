@@ -18,6 +18,8 @@ class AppShellViewModel @Inject constructor(
     val appearance: StateFlow<Appearance> = settings.appearance
         .stateIn(viewModelScope, SharingStarted.Eagerly, Appearance.SYSTEM)
 
+    val baseCurrency: StateFlow<String> = settings.baseCurrency.stateIn(viewModelScope, SharingStarted.Eagerly, "INR")
+
     /** null while the first read is in flight. */
     val onboarded: StateFlow<Boolean?> = kotlinx.coroutines.flow.flow<Boolean?> {
         settings.onboarded.collect { emit(it) }

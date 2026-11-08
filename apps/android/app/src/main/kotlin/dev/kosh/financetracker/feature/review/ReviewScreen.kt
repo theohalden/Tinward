@@ -94,7 +94,7 @@ private fun ReviewCard(t: Transaction, onConfirm: (TransactionCategory) -> Unit)
                         color = Tinward.colors.textTertiary,
                     )
                 }
-                Text(formatMoney(t.amount), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
+                Text(formatMoney(t.amount, currencyCode = t.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
             }
             if (!t.rawSourceText.isNullOrBlank()) {
                 Text(

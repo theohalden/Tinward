@@ -132,20 +132,23 @@ private fun DateHeader(date: LocalDate) {
 
 @Composable
 private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
-    val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT
+    val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT ||
+        transaction.type == TransactionType.CASH_WITHDRAWAL || transaction.type == TransactionType.ADJUSTMENT
     val isDebit = transaction.direction == TransactionDirection.DEBIT
     val merchant = transaction.merchant ?: "Unknown"
     val subtitle = when {
         transaction.reconciliationNote != null ->
             if (transaction.isUnmatchedOverlap) "Unmatched record · excluded from totals" else "Purpose unconfirmed · excluded from spending"
         transaction.type == TransactionType.CREDIT_CARD_PAYMENT -> "Card repayment · not spending or income"
+        transaction.type == TransactionType.ADJUSTMENT -> "Balance adjustment · not income or spending"
+        transaction.type == TransactionType.CASH_WITHDRAWAL -> "Cash withdrawal · moved to cash, not spending"
         isTransfer -> "Transfer · not spending"
         else -> listOfNotNull(
             transaction.category?.let { labelFor(it) }?.takeIf { it != "Uncategorized" },
             accountLabel(transaction),
         ).joinToString(" · ").ifBlank { "Uncategorized" }
     }
-    val amountText = formatSignedMoney(transaction.amount, if (isTransfer) null else isDebit)
+    val amountText = formatSignedMoney(transaction.amount, if (isTransfer) null else isDebit, currencyCode = transaction.currency)
     val time = transaction.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
     val amountColor = when {
         isTransfer -> Tinward.colors.textTertiary

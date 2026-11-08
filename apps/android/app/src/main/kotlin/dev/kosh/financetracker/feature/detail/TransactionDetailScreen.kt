@@ -122,13 +122,14 @@ private fun Divider() = HorizontalDivider(color = Tinward.colors.divider, thickn
 @Composable
 private fun Hero(t: Transaction) {
     val isDebit = t.direction == TransactionDirection.DEBIT
-    val neutral = t.type == TransactionType.CREDIT_CARD_PAYMENT || t.type == TransactionType.TRANSFER
+    val neutral = t.type == TransactionType.CREDIT_CARD_PAYMENT || t.type == TransactionType.TRANSFER ||
+        t.type == TransactionType.CASH_WITHDRAWAL || t.type == TransactionType.ADJUSTMENT
     Column(Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
         CategoryIconTile(t.category, t.merchant ?: "?", size = 56.dp)
         Spacer(Modifier.height(Spacing.sm))
         Text(t.merchant ?: "Unknown", style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary, textAlign = TextAlign.Center)
         Text(
-            formatSignedMoney(t.amount, if (neutral) null else isDebit),
+            formatSignedMoney(t.amount, if (neutral) null else isDebit, currencyCode = t.currency),
             style = MaterialTheme.typography.displaySmall,
             color = when {
                 neutral -> Tinward.colors.textSecondary
@@ -155,6 +156,8 @@ private fun Story(t: Transaction) {
             TransactionType.CREDIT_CARD_PURCHASE -> "The issuer confirms a completed card purchase. It counts as spending on the purchase date."
             TransactionType.CREDIT_CARD_PAYMENT -> "This settles a credit card balance. It is neither new spending nor income; the purchase is counted separately."
             TransactionType.TRANSFER -> "Classified as a transfer and excluded from spending and income."
+            TransactionType.CASH_WITHDRAWAL -> "Money moved from a bank account to cash. It is not spending until you spend the cash."
+            TransactionType.ADJUSTMENT -> "You corrected the tracked balance to match your real one. It is neither income nor spending."
             TransactionType.UNKNOWN -> "The purpose of this movement is unresolved. A credit alone does not establish income."
             else -> "Classified from the stored transaction and available source evidence."
         },

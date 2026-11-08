@@ -39,6 +39,8 @@ data class TransactionEntity(
     val createdAtEpochMillis: Long,
     val balanceAfter: BigDecimal?,
     val transactionRef: String? = null,
+    val currency: String = "INR",
+    val transferGroupId: String? = null,
 )
 
 fun TransactionEntity.toDomain(): Transaction = Transaction(
@@ -62,6 +64,8 @@ fun TransactionEntity.toDomain(): Transaction = Transaction(
     createdAt = Instant.ofEpochMilli(createdAtEpochMillis),
     balanceAfter = balanceAfter,
     transactionRef = transactionRef,
+    currency = currency,
+    transferGroupId = transferGroupId,
 )
 
 fun Transaction.toEntity(): TransactionEntity = TransactionEntity(
@@ -84,5 +88,6 @@ fun Transaction.toEntity(): TransactionEntity = TransactionEntity(
     notes = notes,
     createdAtEpochMillis = createdAt.toEpochMilli(),
     balanceAfter = balanceAfter,
-    transactionRef = transactionRef,
+    transactionRef = transactionRef,    currency = currency,
+    transferGroupId = transferGroupId,
 )

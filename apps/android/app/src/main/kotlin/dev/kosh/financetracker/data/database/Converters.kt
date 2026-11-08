@@ -6,6 +6,7 @@ import dev.kosh.financetracker.core.model.TransactionCategory
 import dev.kosh.financetracker.core.model.TransactionDirection
 import dev.kosh.financetracker.core.model.TransactionSource
 import dev.kosh.financetracker.core.model.TransactionType
+import dev.kosh.financetracker.core.model.AccountType
 import java.math.BigDecimal
 
 class Converters {
@@ -44,4 +45,16 @@ class Converters {
 
     @TypeConverter
     fun toSource(value: String): TransactionSource = TransactionSource.valueOf(value)
+
+    @TypeConverter
+    fun fromAccountType(value: AccountType): String = value.name
+
+    @TypeConverter
+    fun toAccountType(value: String): AccountType = AccountType.valueOf(value)
+
+    @TypeConverter
+    fun fromNullableBigDecimal(value: BigDecimal?): String? = value?.toPlainString()
+
+    @TypeConverter
+    fun toNullableBigDecimal(value: String?): BigDecimal? = value?.let { BigDecimal(it) }
 }

@@ -32,6 +32,7 @@ data class InsightsUiState(
 @HiltViewModel
 class InsightsViewModel @Inject constructor(
     repository: TransactionRepository,
+    settings: dev.kosh.financetracker.data.settings.SettingsStore,
 ) : ViewModel() {
 
     private val zone = ZoneId.systemDefault()
@@ -40,7 +41,9 @@ class InsightsViewModel @Inject constructor(
     val uiState: StateFlow<InsightsUiState> = combine(
         repository.observeTransactions(),
         selectedMonth,
-    ) { transactions, explicitMonth ->
+        settings.baseCurrency,
+    ) { allTransactions, explicitMonth, base ->
+        val transactions = allTransactions.filter { it.currency == base }
         val month = explicitMonth ?: YearMonth.now(zone)
         val monthsWithData = FinanceCalculator.monthsWithData(transactions, zone)
         val months = (FinanceCalculator.recentMonths(YearMonth.now(zone)) + monthsWithData)

@@ -21,6 +21,7 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 class SettingsStore @Inject constructor(@ApplicationContext private val context: Context) {
     private val appearanceKey = stringPreferencesKey("appearance")
     private val onboardedKey = booleanPreferencesKey("onboarded")
+    private val currencyKey = stringPreferencesKey("base_currency")
 
     val appearance: Flow<Appearance> = context.settingsDataStore.data.map {
         runCatching { Appearance.valueOf(it[appearanceKey] ?: "SYSTEM") }.getOrDefault(Appearance.SYSTEM)
@@ -28,6 +29,12 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
 
     /** null until the first read completes, so the UI never flashes onboarding. */
     val onboarded: Flow<Boolean> = context.settingsDataStore.data.map { it[onboardedKey] ?: false }
+
+    /** The currency Home, Insights and Plan total in. INR until changed, because all earlier data is INR. */
+    val baseCurrency: Flow<String> = context.settingsDataStore.data.map { it[currencyKey] ?: "INR" }
+
+    suspend fun setBaseCurrency(code: String) { context.settingsDataStore.edit { it[currencyKey] = code } }
+
 
     suspend fun setAppearance(value: Appearance) {
         context.settingsDataStore.edit { it[appearanceKey] = value.name }
