@@ -97,38 +97,14 @@ fun AddTransactionScreen(onDone: () -> Unit, viewModel: AddTransactionViewModel 
                     prefix = runCatching { java.util.Currency.getInstance(state.currency).getSymbol(Locale.getDefault()) }.getOrDefault(state.currency),
                     numeric = true, placeholder = "0.00", large = true, autoFocus = !state.editing,
                 )
-                TinwardTextField(state.label, viewModel::setLabel, label = "What was this for? (optional)", placeholder = "e.g. Groceries")
-                Column(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(14.dp))
-                        .border(1.dp, Tinward.colors.divider, RoundedCornerShape(14.dp)).background(Tinward.colors.surface)
-                        .clickable { pickingDate = true }.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text("Date", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
-                    Text(dateLabel, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
-                }
-            } else {
+            }
+            if (!state.fullEdit) {
                 Text(
                     "${state.label.ifBlank { "Transaction" }} · ${formatMoney(state.amount ?: java.math.BigDecimal.ZERO, currencyCode = state.currency)} · $dateLabel",
                     style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary,
                 )
             }
 
-            if (state.accounts.isNotEmpty()) {
-                SectionLabel("Account")
-                ChoiceChips(state.accounts, state.account, { it.name }, { viewModel.setAccount(it.id) })
-            }
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f).padding(end = Spacing.sm)) {
-                    Text("Split across categories", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
-                    Text("For one bill that covers several things.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
-                }
-                Switch(
-                    checked = state.splitMode, onCheckedChange = viewModel::setSplitMode,
-                    colors = SwitchDefaults.colors(checkedTrackColor = Tinward.colors.accent, checkedThumbColor = Tinward.colors.onAccent),
-                )
-            }
 
             if (!state.splitMode) {
                 SectionLabel("Category")
@@ -158,6 +134,36 @@ fun AddTransactionScreen(onDone: () -> Unit, viewModel: AddTransactionViewModel 
                             color = if (it.signum() == 0) Tinward.colors.positive else Tinward.colors.textSecondary,
                         )
                     }
+                }
+            }
+
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).padding(end = Spacing.sm)) {
+                    Text("Split across categories", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
+                    Text("For one bill that covers several things.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+                }
+                Switch(
+                    checked = state.splitMode, onCheckedChange = viewModel::setSplitMode,
+                    colors = SwitchDefaults.colors(checkedTrackColor = Tinward.colors.accent, checkedThumbColor = Tinward.colors.onAccent),
+                )
+            }
+
+            if (state.accounts.isNotEmpty()) {
+                SectionLabel("Account")
+                ChoiceChips(state.accounts, state.account, { it.name }, { viewModel.setAccount(it.id) })
+            }
+
+            if (state.fullEdit) {
+                TinwardTextField(state.label, viewModel::setLabel, label = "What was this for? (optional)", placeholder = "e.g. Groceries")
+                Column(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, Tinward.colors.divider, RoundedCornerShape(14.dp)).background(Tinward.colors.surface)
+                        .clickable { pickingDate = true }.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text("Date", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+                    Text(dateLabel, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
                 }
             }
 
