@@ -42,6 +42,7 @@ data class OverviewUiState(
     val monthSummary: MonthSummary = MonthSummary(BigDecimal.ZERO, BigDecimal.ZERO),
     val categoryBreakdown: List<CategorySlice> = emptyList(),
     val dailySpend: List<DaySpend> = emptyList(),
+    val previousDailySpend: List<DaySpend> = emptyList(),
     val accountSummaries: List<AccountSummary> = emptyList(),
     val recentActivity: List<Transaction> = emptyList(),
     val totalCount: Int = 0,
@@ -99,6 +100,7 @@ class OverviewViewModel @Inject constructor(
             monthSummary = FinanceCalculator.summaryForMonth(transactions, month, zone),
             categoryBreakdown = FinanceCalculator.categoryBreakdownForMonth(transactions, month, zone),
             dailySpend = FinanceCalculator.dailySpendForMonth(transactions, month, zone),
+            previousDailySpend = FinanceCalculator.dailySpendForMonth(transactions, month.minusMonths(1), zone),
             accountSummaries = FinanceCalculator.accountSummariesForMonth(transactions, month, zone),
             recentActivity = transactions
                 .filter { YearMonth.from(it.timestamp.atZone(zone)) == month }

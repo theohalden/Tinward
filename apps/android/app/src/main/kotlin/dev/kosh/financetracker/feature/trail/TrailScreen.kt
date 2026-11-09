@@ -184,11 +184,11 @@ private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
     val merchant = transaction.merchant ?: "Unknown"
     val subtitle = when {
         transaction.reconciliationNote != null ->
-            if (transaction.isUnmatchedOverlap) "Unmatched record · excluded from totals" else "Purpose unconfirmed · excluded from spending"
-        transaction.type == TransactionType.CREDIT_CARD_PAYMENT -> "Card repayment · not spending or income"
-        transaction.type == TransactionType.ADJUSTMENT -> "Balance adjustment · not income or spending"
-        transaction.type == TransactionType.CASH_WITHDRAWAL -> "Cash withdrawal · moved to cash, not spending"
-        isTransfer -> "Transfer · not spending"
+            if (transaction.isUnmatchedOverlap) "Unmatched \u00B7 not counted" else "Needs a decision"
+        transaction.type == TransactionType.CREDIT_CARD_PAYMENT -> "Card payment"
+        transaction.type == TransactionType.ADJUSTMENT -> "Balance correction"
+        transaction.type == TransactionType.CASH_WITHDRAWAL -> "Cash withdrawal"
+        isTransfer -> "Transfer"
         else -> listOfNotNull(
             transaction.category?.let { labelFor(it) }?.takeIf { it != "Uncategorized" },
             accountLabel(transaction),
@@ -214,7 +214,7 @@ private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
         Spacer(Modifier.width(Spacing.ms))
         Column(modifier = Modifier.weight(1f)) {
             Text(merchant, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(Spacing.sm))
         Column(horizontalAlignment = Alignment.End) {
@@ -226,5 +226,5 @@ private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
 
 private fun accountLabel(t: Transaction): String? {
     val masked = t.accountSuffix?.let { s -> t.bank?.let { "$it ••$s" } ?: "••$s" }
-    return masked ?: t.paymentMethod?.name?.lowercase()?.replaceFirstChar { it.uppercase() }
+    return masked ?: t.paymentMethod?.takeIf { it.name != "UNKNOWN" }?.name?.lowercase()?.replaceFirstChar { it.uppercase() }
 }

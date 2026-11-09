@@ -78,7 +78,8 @@ fun InsightsScreen(
                     Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Spent this month", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary, modifier = Modifier.weight(1f))
-                            state.percentChangeVsPreviousMonth?.let { PercentChange(it) }
+                            // A month still in progress is not comparable with a whole one; the pace chart below does that fairly.
+                            if (state.selectedMonth != java.time.YearMonth.now()) state.percentChangeVsPreviousMonth?.let { PercentChange(it) }
                         }
                         if (state.categoryBreakdown.isEmpty()) {
                             Text(formatMoney(state.monthSummary.expense), style = MaterialTheme.typography.displaySmall, color = Tinward.colors.textPrimary)
@@ -116,11 +117,11 @@ fun InsightsScreen(
                     }
                 }
             }
-            item { SectionLabel("Daily spending") }
+            item { SectionLabel("Spending pace") }
             item {
                 KoshCard {
                     Box(Modifier.padding(Spacing.md)) {
-                        dev.kosh.financetracker.ui.components.DailySpendChart(days = state.dailySpend, color = Tinward.colors.accent, currencyCode = state.currency)
+                        dev.kosh.financetracker.ui.components.SpendPaceChart(days = state.dailySpend, previousDays = state.previousDailySpend, month = state.selectedMonth, currency = state.currency, hidden = false, chartHeight = 190.dp)
                     }
                 }
             }
@@ -184,37 +185,13 @@ private fun CategoryRow(slice: CategorySlice) {
 
 @Composable
 private fun TrendCard(state: InsightsUiState) {
-    val max = state.trend.maxOfOrNull { maxOf(it.spent, it.income) }?.takeIf { it.signum() > 0 }
+    val hasData = state.trend.any { it.hasActivity }
     KoshCard {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            if (max == null) {
+            if (!hasData) {
                 Text("No spending or income in these months yet.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
             } else {
-                val spentColor = Tinward.colors.accent
-                val incomeColor = Tinward.colors.positive
-                Row(Modifier.fillMaxWidth().height(140.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                    state.trend.forEach { p ->
-                        val selected = p.month == state.selectedMonth
-                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                if (p.spent.signum() > 0) dev.kosh.financetracker.ui.format.compactMoney(p.spent, state.currency) else "",
-                                style = MaterialTheme.typography.labelSmall, maxLines = 1,
-                                color = if (selected) Tinward.colors.textPrimary else Tinward.colors.textTertiary,
-                            )
-                            Row(Modifier.height(100.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Bar(p.income.toFloat() / max.toFloat(), incomeColor.copy(alpha = if (selected) 1f else 0.45f))
-                                Bar(p.spent.toFloat() / max.toFloat(), spentColor.copy(alpha = if (selected) 1f else 0.55f))
-                            }
-                            Text(
-                                p.month.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()),
-                                style = MaterialTheme.typography.labelSmall, color = if (selected) Tinward.colors.textPrimary else Tinward.colors.textTertiary,
-                            )
-                        }
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    Legend(Tinward.colors.positive, "Income"); Legend(Tinward.colors.accent, "Spent")
-                }
+                dev.kosh.financetracker.ui.components.MonthlyTrendChart(state.trend, state.selectedMonth, state.currency, chartHeight = 170.dp)
                 state.averageSpent?.let { Text("Average spent in months with activity: ${formatMoney(it, currencyCode = state.currency)}", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary) }
             }
         }
@@ -245,6 +222,10 @@ private fun ComparisonCard(c: dev.kosh.financetracker.core.finance.MonthComparis
             Text("Compared with $prev", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
             CompareRow("Spent", c.spent, c.previousSpent, c.spentChangePercent, currency, upIsBad = true)
             CompareRow("Income", c.income, c.previousIncome, c.incomeChangePercent, currency, upIsBad = false)
+            if (month == java.time.YearMonth.now()) Text(
+                "This month is still in progress, so it looks lower than a whole month. See the spending pace below for a like-for-like view.",
+                style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
+            )
         }
     }
 }

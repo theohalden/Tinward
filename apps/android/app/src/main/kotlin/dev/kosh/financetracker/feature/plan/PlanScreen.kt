@@ -65,7 +65,7 @@ fun PlanScreen(onOpenTimeline: () -> Unit, onOpenPlus: () -> Unit, viewModel: Pl
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            SegmentedTabs(listOf("Budget", "Bills", "Goal", "Rules"), tab, { tab = it })
+            SegmentedTabs(listOf("Budget", "Bills", "Goal", "50/30/20"), tab, { tab = it })
             message?.let {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.negative, modifier = Modifier.weight(1f))

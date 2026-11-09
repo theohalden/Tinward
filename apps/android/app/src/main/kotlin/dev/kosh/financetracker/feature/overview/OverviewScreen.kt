@@ -349,12 +349,13 @@ private fun HomeContent(
                     KoshCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenInsights)) {
                         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Spending this month", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
-                                Text("Details \u203A", style = MaterialTheme.typography.labelLarge, color = Tinward.colors.accentText)
+                                Text("Spending pace", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                                Text("Insights \u203A", style = MaterialTheme.typography.labelLarge, color = Tinward.colors.accentText)
                             }
-                            dev.kosh.financetracker.ui.components.DailySpendChart(
-                                days = state.dailySpend, color = Tinward.colors.accent, currencyCode = state.available?.currency ?: dev.kosh.financetracker.ui.format.BaseCurrency.code,
-                                hidden = amountsHidden, chartHeight = 88.dp,
+                            dev.kosh.financetracker.ui.components.SpendPaceChart(
+                                days = state.dailySpend, previousDays = state.previousDailySpend, month = state.selectedMonth,
+                                currency = state.available?.currency ?: dev.kosh.financetracker.ui.format.BaseCurrency.code,
+                                hidden = amountsHidden, chartHeight = 130.dp,
                             )
                         }
                     }
