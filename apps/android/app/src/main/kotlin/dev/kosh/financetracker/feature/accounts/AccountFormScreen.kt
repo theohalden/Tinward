@@ -49,6 +49,11 @@ fun AccountFormScreen(onDone: () -> Unit, viewModel: AccountFormViewModel = hilt
             if (!s.editing) {
                 SectionLabel("Type")
                 ChoiceChips(AccountType.values().toList(), s.type, { it.label }, { t -> viewModel.update { copy(type = t) } })
+            } else if (s.type == AccountType.BANK || s.type == AccountType.CREDIT_CARD) {
+                // A card that was first discovered from messages as a plain account can be corrected here.
+                SectionLabel("Type")
+                ChoiceChips(listOf(AccountType.BANK, AccountType.CREDIT_CARD), s.type, { it.label }, { t -> viewModel.update { copy(type = t) } })
+                if (card) Text("After saving, use Correct balance on the card to set what you owe today.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
             }
             TinwardTextField(s.name, { v -> viewModel.update { copy(name = v.take(40)) } }, "Name", placeholder = if (card) "e.g. HDFC Regalia" else "e.g. Salary account")
             TinwardTextField(s.institution, { v -> viewModel.update { copy(institution = v.take(40)) } }, "Bank or issuer (optional)", placeholder = "e.g. HDFC")
