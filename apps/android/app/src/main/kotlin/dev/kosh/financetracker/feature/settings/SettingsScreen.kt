@@ -57,6 +57,7 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
     val scan by viewModel.scan.collectAsState()
     val plusTier by viewModel.entitlements.tier.collectAsState()
     var showCategories by remember { mutableStateOf(false) }
+    var showSmsDetail by remember { mutableStateOf(false) }
     var exportNote by remember { mutableStateOf<String?>(null) }
     var securityNote by remember { mutableStateOf<String?>(null) }
     val smsGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
@@ -68,43 +69,20 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            SectionLabel("Appearance")
-            SegmentedTabs(
-                listOf("System", "Light", "Dark"),
-                when (appearance) { Appearance.SYSTEM -> 0; Appearance.LIGHT -> 1; Appearance.DARK -> 2 },
-                { viewModel.setAppearance(Appearance.values()[it]) },
-            )
-
-            if (viewModel.debugOptions.enabled) {
-                val scale by viewModel.debugOptions.fontScale.collectAsState()
-                SectionLabel("Testing (debug builds only)")
-                Text("Text size on top of the system setting, to check large-text layouts.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
-                dev.kosh.financetracker.ui.components.ChoiceChips(listOf(1f, 1.3f, 1.6f, 2f), scale, { "${it}\u00D7" }, viewModel.debugOptions::setFontScale)
-            }
-
             SectionLabel("Tinward Plus")
             KoshCard {
-                ActionRow(if (plusTier == dev.kosh.financetracker.feature.plus.Tier.PLUS) "You have Tinward Plus" else "Tinward Plus", "Planning tools on top of everything in Free.") { onOpenPlus() }
+                ActionRow(if (plusTier == dev.kosh.financetracker.feature.plus.Tier.PLUS) "You have Tinward Plus" else "See what Plus adds", "Money timeline, unlimited budgets, goals, debt planner, review and rules.") { onOpenPlus() }
             }
 
-            SectionLabel("Security")
-            SecuritySection(viewModel.vault, viewModel.backup, securityNote) { securityNote = it }
-
-            SectionLabel("Data")
+            SectionLabel("Your money")
             KoshCard {
-                ActionRow("Export transactions (CSV)", exportNote ?: "Shares a file from this phone; nothing is uploaded by Tinward.") {
-                    scope.launch {
-                        val intent = viewModel.buildExport(context)
-                        if (intent == null) exportNote = "No transactions to export yet." else { exportNote = null; context.startActivity(intent) }
-                    }
-                }
+                dev.kosh.financetracker.feature.settings.CurrencyRow(baseCurrency, viewModel::setBaseCurrency)
                 HorizontalDivider(color = Tinward.colors.divider)
-                ActionRow("Import a CSV file", "Add transactions from a statement you downloaded, any bank.") { onOpenImportCsv() }
-                HorizontalDivider(color = Tinward.colors.divider)
-                ActionRow("Rules (Plus)", "Label transactions automatically, with undo.") { onOpenRules() }
-                HorizontalDivider(color = Tinward.colors.divider)
-                ActionRow("Recently deleted", "Restore transactions you removed.") { onOpenDeleted() }
-                HorizontalDivider(color = Tinward.colors.divider)
+                DollarRow(dollarCurrency, viewModel::setDollarCurrency)
+            }
+
+            SectionLabel("Organise")
+            KoshCard {
                 ActionRow("Categories", if (showCategories) "Tap to hide" else "${TransactionCategory.values().size - 1} categories") { showCategories = !showCategories }
                 if (showCategories) {
                     TransactionCategory.values().filter { it != TransactionCategory.UNCATEGORIZED }.forEach { c ->
@@ -116,7 +94,26 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
                     }
                     Spacer(Modifier.height(Spacing.sm))
                 }
+                HorizontalDivider(color = Tinward.colors.divider)
+                ActionRow("Rules (Plus)", "Label transactions automatically, with undo.") { onOpenRules() }
+                HorizontalDivider(color = Tinward.colors.divider)
+                ActionRow("Recently deleted", "Restore transactions you removed.") { onOpenDeleted() }
             }
+
+            SectionLabel("Import and export")
+            KoshCard {
+                ActionRow("Import a CSV file", "Add transactions from a statement you downloaded, any bank.") { onOpenImportCsv() }
+                HorizontalDivider(color = Tinward.colors.divider)
+                ActionRow("Export transactions (CSV)", exportNote ?: "Shares a file from this phone; nothing is uploaded by Tinward.") {
+                    scope.launch {
+                        val intent = viewModel.buildExport(context)
+                        if (intent == null) exportNote = "No transactions to export yet." else { exportNote = null; context.startActivity(intent) }
+                    }
+                }
+            }
+
+            SectionLabel("Security")
+            SecuritySection(viewModel.vault, viewModel.backup, securityNote) { securityNote = it }
 
             SectionLabel("Privacy and access")
             KoshCard {
@@ -139,21 +136,33 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
                 }
                 HorizontalDivider(color = Tinward.colors.divider)
                 Text(
-                    "Tinward reads bank SMS on this phone only. There is no account, no analytics and no network permission. Each message it records is kept, text included, inside your encrypted data so it can show why a transaction is there. It is never logged or sent anywhere, and it is protected by your PIN. Message reading works for the formats it has been tested on; where it cannot read a message, you can add the transaction by hand or import a CSV.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Tinward.colors.textTertiary,
-                    modifier = Modifier.padding(Spacing.md),
+                    "Tinward reads bank SMS on this phone only. Nothing is uploaded: there is no account, no analytics and no network permission.",
+                    style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary, modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                )
+                HorizontalDivider(color = Tinward.colors.divider)
+                ActionRow("How SMS is used", if (showSmsDetail) "Tap to hide" else "What is kept, and what happens when a message can't be read") { showSmsDetail = !showSmsDetail }
+                if (showSmsDetail) Text(
+                    "Each message it records is kept, text included, inside your encrypted data so Tinward can show why a transaction is there. It is never logged or sent anywhere, and it is protected by your PIN. Message reading works for the formats it has been tested on; where it cannot read a message, you can add the transaction by hand or import a CSV.",
+                    style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary, modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                 )
             }
 
-            SectionLabel("General")
-            KoshCard {
-                dev.kosh.financetracker.feature.settings.CurrencyRow(baseCurrency, viewModel::setBaseCurrency)
-                HorizontalDivider(color = Tinward.colors.divider)
-                DollarRow(dollarCurrency, viewModel::setDollarCurrency)
-                HorizontalDivider(color = Tinward.colors.divider)
-                FieldRow("Version", version)
+            SectionLabel("Appearance")
+            SegmentedTabs(
+                listOf("System", "Light", "Dark"),
+                when (appearance) { Appearance.SYSTEM -> 0; Appearance.LIGHT -> 1; Appearance.DARK -> 2 },
+                { viewModel.setAppearance(Appearance.values()[it]) },
+            )
+
+            if (viewModel.debugOptions.enabled) {
+                val scale by viewModel.debugOptions.fontScale.collectAsState()
+                SectionLabel("Testing (debug builds only)")
+                Text("Text size on top of the system setting, to check large-text layouts.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+                dev.kosh.financetracker.ui.components.ChoiceChips(listOf(1f, 1.3f, 1.6f, 2f), scale, { "${it}\u00D7" }, viewModel.debugOptions::setFontScale)
             }
+
+            SectionLabel("About")
+            KoshCard { FieldRow("Version", version) }
             Spacer(Modifier.height(Spacing.xl))
         }
     }
