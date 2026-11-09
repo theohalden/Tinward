@@ -76,7 +76,7 @@ fun PlanScreen(onOpenTimeline: () -> Unit, onOpenPlus: () -> Unit, viewModel: Pl
                 0 -> BudgetTab(state, viewModel, onEditIncome = { editIncome = true }, onOpenTimeline = onOpenTimeline, onOpenPlus = onOpenPlus)
                 1 -> BillsTab(state, viewModel)
                 2 -> GoalTab(state, viewModel, onOpenPlus)
-                else -> RulesTab()
+                else -> RulesTab(state)
             }
             Spacer(Modifier.height(Spacing.xl))
         }
@@ -134,20 +134,34 @@ internal fun Bar(fraction: Float, color: Color, marker: Float? = null) {
 }
 
 @Composable
-private fun RulesTab() {
-    KoshCard {
-        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            SectionLabel("The 50/30/20 rule")
-            Text(
-                "A simple split of income: half for needs, 30% for wants, and 20% kept as savings. Tinward sorts your recorded spending by category, so the result is a guide, not a verdict.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Tinward.colors.textSecondary,
+private fun RulesTab(state: PlanUiState) {
+    val r = state.rule
+    val income = state.income
+    if (income == null) {
+        KoshCard {
+            Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("See how your month splits", style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary)
+                Text("Set your monthly income on the Budget tab and Tinward shows how much goes to needs, wants and savings.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+            }
+        }
+    } else KoshCard {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Text("This month against 50 / 30 / 20", style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary)
+            RuleRow("Needs", 0.5f, r.needs, r.fractionOfIncome(r.needs), Tinward.colors.category[1])
+            RuleRow("Wants", 0.3f, r.wants, r.fractionOfIncome(r.wants), Tinward.colors.category[3])
+            RuleRow("Left to save", 0.2f, r.savings.max(BigDecimal.ZERO), r.fractionOfIncome(r.savings.max(BigDecimal.ZERO)), Tinward.colors.category[2])
+            if (r.unclassified.signum() > 0) Text(
+                "${formatMoney(r.unclassified, currencyCode = state.currency)} is not categorised yet, so it only reduces what is left to save. Review a few transactions to sharpen this.",
+                style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
             )
-            Text("Needs", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
-            Text("Groceries, bills, rent, fuel, health, education, transport.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
-            Text("Wants", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
-            Text("Food and dining, shopping, entertainment, subscriptions, personal care, technology, home, fees.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
-            Text("Anything uncategorised, family or business spending counts toward neither group until you categorise it in Review.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+        }
+    }
+    KoshCard {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text("What it means", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+            Text("A simple guide: half your income for needs, 30% for wants, 20% kept as savings. It is a guide, not a verdict.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+            Text("Needs: groceries, bills, rent, fuel, health, education, transport.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+            Text("Wants: dining, shopping, entertainment, subscriptions, personal care, technology, home, fees.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
         }
     }
 }

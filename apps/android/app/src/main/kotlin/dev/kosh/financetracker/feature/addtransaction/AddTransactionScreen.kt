@@ -91,10 +91,6 @@ fun AddTransactionScreen(onDone: () -> Unit, viewModel: AddTransactionViewModel 
                     onSelect = { viewModel.setDirection(if (it == 0) TransactionDirection.DEBIT else TransactionDirection.CREDIT) },
                 )
             }
-            if (state.accounts.isNotEmpty()) {
-                SectionLabel("Account")
-                ChoiceChips(state.accounts, state.account, { it.name }, { viewModel.setAccount(it.id) })
-            }
             if (state.fullEdit) {
                 TinwardTextField(
                     state.amountText, viewModel::setAmount, label = "Amount",
@@ -116,6 +112,11 @@ fun AddTransactionScreen(onDone: () -> Unit, viewModel: AddTransactionViewModel 
                     "${state.label.ifBlank { "Transaction" }} · ${formatMoney(state.amount ?: java.math.BigDecimal.ZERO, currencyCode = state.currency)} · $dateLabel",
                     style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary,
                 )
+            }
+
+            if (state.accounts.isNotEmpty()) {
+                SectionLabel("Account")
+                ChoiceChips(state.accounts, state.account, { it.name }, { viewModel.setAccount(it.id) })
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

@@ -109,7 +109,7 @@ internal fun BillsTab(state: PlanUiState, vm: PlanViewModel) {
                     Text(formatMoney(o.item.amount, currencyCode = o.item.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
                     // Only the next one per schedule can be confirmed; later ones follow automatically.
                     if (state.pending.first { it.item.id == o.item.id } == o) {
-                        TextButton(onClick = { settling = o }) { Text(if (o.item.kind == RecurringKind.BILL) "Paid" else "Received", color = Tinward.colors.accentText) }
+                        TextButton(onClick = { settling = o }) { Text(if (o.item.kind == RecurringKind.BILL) "Mark paid" else "Mark received", color = Tinward.colors.accentText) }
                     } else androidx.compose.foundation.layout.Spacer(Modifier.padding(end = Spacing.md))
                 }
                 if (i != state.pending.lastIndex) HorizontalDivider(color = Tinward.colors.divider)
@@ -117,7 +117,7 @@ internal fun BillsTab(state: PlanUiState, vm: PlanViewModel) {
         }
     }
 
-    SectionLabel("Your schedules")
+    SectionLabel("All bills and income (tap to edit)")
     if (state.recurring.isEmpty()) Text("Nothing added yet.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textTertiary)
     else KoshCard {
         Column {

@@ -234,23 +234,6 @@ private fun IncomeAndRule(state: PlanUiState, onEditIncome: () -> Unit) {
             }
         }
     }
-    if (income != null) {
-        val r = state.rule
-        KoshCard {
-            Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                SectionLabel("50 / 30 / 20")
-                RuleRow("Needs", 0.5f, r.needs, r.fractionOfIncome(r.needs), Tinward.colors.category[1])
-                RuleRow("Wants", 0.3f, r.wants, r.fractionOfIncome(r.wants), Tinward.colors.category[3])
-                RuleRow("Left to save", 0.2f, r.savings.max(BigDecimal.ZERO), r.fractionOfIncome(r.savings.max(BigDecimal.ZERO)), Tinward.colors.category[2])
-                if (r.unclassified.signum() > 0) {
-                    Text(
-                        "${formatMoney(r.unclassified, currencyCode = state.currency)} is uncategorised or in neither group, so it only reduces what is left to save.",
-                        style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
-                    )
-                }
-            }
-        }
-    }
 }
 
 /** Amount entry with optional Remove. [onSave] gets null when the field is empty or invalid. */

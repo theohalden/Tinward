@@ -334,8 +334,8 @@ private fun HomeContent(
                             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text("Available to spend", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
-                                Text("estimate, after bills and goals", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+                                Text("Cash after bills and goals", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
+                                Text("your accounts, less what is due", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
                             }
                             Text(
                                 formatMoney(a.available, amountsHidden, a.currency), style = MaterialTheme.typography.titleMedium,
@@ -545,12 +545,12 @@ private fun LeftToSpendHero(
     val label = when {
         !hasIncome -> "Spent this month"
         left.signum() < 0 -> "Over your income by"
-        else -> "Left to spend"
+        else -> "Left this month"
     }
     val caption = when (basis.source) {
-        dev.kosh.financetracker.core.finance.IncomeSource.RECORDED -> "income received minus spending"
+        dev.kosh.financetracker.core.finance.IncomeSource.RECORDED -> "income received minus what you have spent"
         dev.kosh.financetracker.core.finance.IncomeSource.PLANNED ->
-            "planned income minus spending" + if (basis.receivedSoFar.signum() > 0) " \u00B7 ${formatMoney(basis.receivedSoFar, amountsHidden)} received so far" else ""
+            "planned income minus what you have spent" + if (basis.receivedSoFar.signum() > 0) " \u00B7 ${formatMoney(basis.receivedSoFar, amountsHidden)} received so far" else ""
         dev.kosh.financetracker.core.finance.IncomeSource.NONE -> "no income recorded this month"
     }
 

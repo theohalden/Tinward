@@ -63,7 +63,7 @@ fun AccountsScreen(
                             Text(formatMoney(amount, currencyCode = cur), style = MaterialTheme.typography.displaySmall, color = Tinward.colors.textPrimary)
                         }
                         Text(
-                            "Accounts minus card debt, calculated from recorded history. Not a live bank balance, and different currencies are never added together.",
+                            "Accounts minus card debt, from your records. Not a live bank balance.",
                             style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
                         )
                     }
@@ -118,10 +118,10 @@ private fun PositionCard(p: AccountPosition, onOpen: (Long) -> Unit) {
                 else -> Text(formatMoney(p.amount ?: java.math.BigDecimal.ZERO, currencyCode = a.currency), style = MaterialTheme.typography.headlineMedium, color = Tinward.colors.textPrimary)
             }
             if (!a.type.isCard && a.openingBalance.signum() == 0 && p.amount?.signum() == 0) {
-                Text("Tracking starts today. Open this account and use Correct balance to enter what your bank shows.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.accentText)
+                Text("Open this account and tap Correct balance to set today's balance.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.accentText)
             }
             Text(
-                listOfNotNull(a.institution, a.last4?.let { "••$it" }, "${p.transactionCount} transactions", "tracked").joinToString(" · "),
+                listOfNotNull(a.institution?.takeIf { inst -> !a.name.contains(inst, ignoreCase = true) }, a.last4?.takeIf { l -> !a.name.contains(l) }?.let { "••$it" }, "${p.transactionCount} transactions").joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
             )
         }
