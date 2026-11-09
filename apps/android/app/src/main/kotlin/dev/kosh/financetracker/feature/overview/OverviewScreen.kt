@@ -136,15 +136,18 @@ fun OverviewScreen(
         when {
             !state.loaded -> LoadingState()
 
-            !hasPermission && !state.hasAnyData -> PermissionGate(
-                onGrant = {
-                    permissionLauncher.launch(arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS))
-                },
+            !hasPermission && !state.hasAnyData -> EmptyHomeState(
+                onScan = { permissionLauncher.launch(arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)) },
+                onOpenSettings = onOpenSettings,
+                onImport = { filePickerLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "*/*")) },
             )
 
             syncState.isSyncing && !state.hasAnyData -> LoadingState(syncing = true)
 
-            !state.hasAnyData -> EmptyHomeState(onScan = viewModel::sync)
+            !state.hasAnyData -> EmptyHomeState(
+                onScan = viewModel::sync, onOpenSettings = onOpenSettings,
+                onImport = { filePickerLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "*/*")) },
+            )
 
             else -> HomeContent(
                 state = state,
@@ -259,7 +262,7 @@ private fun LoadingState(syncing: Boolean = false) {
 }
 
 @Composable
-private fun EmptyHomeState(onScan: () -> Unit) {
+private fun EmptyHomeState(onScan: () -> Unit, onImport: () -> Unit, onOpenSettings: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -267,15 +270,26 @@ private fun EmptyHomeState(onScan: () -> Unit) {
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        KoshWordmark()
-        Spacer(Modifier.height(Spacing.xxl))
-        Text("No transactions yet", style = MaterialTheme.typography.titleLarge, color = Tinward.colors.textPrimary)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            KoshWordmark()
+            Box(
+                Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(onClick = onOpenSettings)
+                    .semantics { contentDescription = "Settings" },
+                contentAlignment = Alignment.Center,
+            ) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.Settings, contentDescription = null, tint = Tinward.colors.textSecondary) }
+        }
+        Spacer(Modifier.height(Spacing.xl))
+        Text("Let's bring your money in", style = MaterialTheme.typography.headlineMedium, color = Tinward.colors.textPrimary)
         Text(
-            "Scan your SMS history to find bank transactions. Opening Tinward does not rescan or change your existing history.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Tinward.colors.textSecondary,
+            "Pick whichever is easiest. You can do the others any time, and Tinward never rescans on its own.",
+            style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary,
         )
-        PrimaryButton("Scan SMS history", onScan)
+        PrimaryButton("Scan my bank SMS", onScan, Modifier.fillMaxWidth())
+        androidx.compose.material3.OutlinedButton(
+            onClick = onImport, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = RoundedCornerShape(14.dp),
+        ) { Text("Import a statement or CSV", color = Tinward.colors.textPrimary) }
+        Text("Or add anything by hand with the + button below.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+        Text("Bank SMS are read on this phone only. Nothing is uploaded, and the app works fully without SMS access.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
     }
 }
 
@@ -331,11 +345,12 @@ private fun HomeContent(
                 state.available?.let { a ->
                     Spacer(Modifier.height(Spacing.md))
                     KoshCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenPlan)) {
-                        Row(
+                        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                        androidx.compose.foundation.layout.FlowRow(
                             Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                         ) {
-                            Column(Modifier.weight(1f)) {
+                            Column {
                                 Text("Cash after bills and goals", style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
                                 Text("your accounts, less what is due", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
                             }
@@ -575,9 +590,13 @@ private fun LeftToSpendHero(
         Text(caption, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
 
         Spacer(Modifier.height(Spacing.md))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            StatColumn("Spent", formatMoney(summary.expense, amountsHidden), Modifier.weight(1f))
-            StatColumn(if (basis.source == dev.kosh.financetracker.core.finance.IncomeSource.PLANNED) "Planned income" else "Income", formatMoney(income, amountsHidden), Modifier.weight(1f))
+        // Side by side normally; stacked when large text leaves no room, so an amount is never broken across lines.
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow(
+            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            StatColumn("Spent", formatMoney(summary.expense, amountsHidden))
+            StatColumn(if (basis.source == dev.kosh.financetracker.core.finance.IncomeSource.PLANNED) "Planned income" else "Income", formatMoney(income, amountsHidden))
         }
         Spacer(Modifier.height(Spacing.sm))
         val fraction = if (hasIncome) (summary.expense.toFloat() / income.toFloat()).coerceIn(0f, 1f) else 0f
@@ -589,7 +608,7 @@ private fun LeftToSpendHero(
 private fun StatColumn(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = Tinward.colors.textTertiary)
-        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Tinward.colors.textPrimary)
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Tinward.colors.textPrimary, maxLines = 1, softWrap = false)
     }
 }
 

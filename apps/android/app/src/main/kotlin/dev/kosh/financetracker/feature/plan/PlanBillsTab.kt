@@ -94,11 +94,12 @@ internal fun BillsTab(state: PlanUiState, vm: PlanViewModel) {
     } else KoshCard {
         Column {
             state.pending.forEachIndexed { i, o ->
-                Row(
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                androidx.compose.foundation.layout.FlowRow(
                     Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = Spacing.md, top = Spacing.xs, bottom = Spacing.xs),
-                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Column(Modifier.weight(1f)) {
+                    Column {
                         Text(o.item.name, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
                         Text(
                             whenText(o, today) + if (o.item.kind == RecurringKind.INCOME) " \u00B7 income" else "",

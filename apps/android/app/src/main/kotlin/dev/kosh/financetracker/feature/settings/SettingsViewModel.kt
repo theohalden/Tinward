@@ -27,6 +27,7 @@ class SettingsViewModel @Inject constructor(
     val entitlements: dev.kosh.financetracker.feature.plus.Entitlements,
     private val syncManager: dev.kosh.financetracker.feature.sync.SmsSyncManager,
     val backup: dev.kosh.financetracker.security.BackupManager,
+    val koshImporter: dev.kosh.financetracker.data.debug.KoshImporter,
 ) : ViewModel() {
     val appearance: StateFlow<Appearance> = settings.appearance
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Appearance.SYSTEM)

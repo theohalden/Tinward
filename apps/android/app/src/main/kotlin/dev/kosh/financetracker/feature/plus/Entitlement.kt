@@ -56,7 +56,7 @@ class Entitlements @Inject constructor(@ApplicationContext private val context: 
         else EntitlementRecord(prefs.getBoolean("plus", false), prefs.getLong("verified_at", 0L), prefs.getString("product", null))
 
     val source: EntitlementSource get() = when {
-        debuggable && prefs.getBoolean("debug_plus", false) -> EntitlementSource.DEBUG
+        debuggable && prefs.getBoolean("debug_plus", true) -> EntitlementSource.DEBUG
         EntitlementPolicy.tier(record(), System.currentTimeMillis()) == Tier.PLUS -> EntitlementSource.PLAY
         else -> EntitlementSource.NONE
     }
@@ -64,7 +64,7 @@ class Entitlements @Inject constructor(@ApplicationContext private val context: 
     fun graceDaysLeft(): Long? = EntitlementPolicy.graceDaysLeft(record(), System.currentTimeMillis())
 
     private fun compute(): Tier =
-        if (debuggable && prefs.getBoolean("debug_plus", false)) Tier.PLUS else EntitlementPolicy.tier(record(), System.currentTimeMillis())
+        if (debuggable && prefs.getBoolean("debug_plus", true)) Tier.PLUS else EntitlementPolicy.tier(record(), System.currentTimeMillis())
 
     /** Called with what Google Play reported just now (online). */
     fun onPlayResult(hasActiveSubscription: Boolean, productId: String?) {

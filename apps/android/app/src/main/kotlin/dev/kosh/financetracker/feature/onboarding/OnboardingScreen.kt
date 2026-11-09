@@ -51,7 +51,7 @@ private val PAGES = listOf(
     Page(
         "Bring your money in.", null,
         "Start with what you already have, then add the rest.",
-        listOf("Automatic: allow SMS access on the next screen", "Import a bank statement (CSV or Excel)", "Add anything the bank never texted"),
+        listOf("Automatic: allow SMS access after you set your PIN", "Import a bank statement (CSV or Excel)", "Add anything the bank never texted"),
     ),
 )
 

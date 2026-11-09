@@ -17,6 +17,8 @@ Date: 2026-11-08. Branch `claude/jovial-wright-e59e8c`. Everything below says wh
 | 5 | **Privacy policy and store listing** | Play requires a policy URL and accurate Data Safety and store text | Publish a policy matching section 5; use the feature list in section 6 |
 | 6 | **Real-user beta** | The spec requires Free and Plus beta testers and accounting validation on real bank messages | Run a closed test; the global SMS parser has only been run against written templates |
 
+**Before release:** delete the development-only Kosh importer (`data/debug/KoshImporter.kt` and its Settings row), and confirm the Plus debug default is limited to debuggable builds (it is: release builds ignore it).
+
 ## 3. What was checked in this pass
 
 | Check | Result | Evidence |

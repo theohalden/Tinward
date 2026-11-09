@@ -40,6 +40,9 @@ interface TransactionRepository {
     /** Returns true if actually inserted, false if a transaction from this source already existed. */
     suspend fun saveIfNew(transaction: Transaction): Boolean
 
+    /** Links SMS observations to the statement rows that record the same payment (by reference number). */
+    suspend fun reconcileSourceLinks(): Int = 0
+
     /** Re-runs transfer detection across all stored transactions and reclassifies matches. */
     suspend fun reconcileTransfers()
 
@@ -114,6 +117,8 @@ class RoomTransactionRepository @Inject constructor(
         if (counted) rulesRepository?.applyToNew(listOf(id))
         counted
     }
+
+    override suspend fun reconcileSourceLinks(): Int = database.withTransaction { reconcileSourceObservations() }
 
     private suspend fun reconcileSourceObservations(): Int {
         val all = dao.getAll().map { it.toDomain() }

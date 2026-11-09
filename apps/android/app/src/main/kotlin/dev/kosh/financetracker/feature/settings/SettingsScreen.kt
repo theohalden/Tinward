@@ -58,6 +58,7 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
     val plusTier by viewModel.entitlements.tier.collectAsState()
     var showCategories by remember { mutableStateOf(false) }
     var showSmsDetail by remember { mutableStateOf(false) }
+    var importNote by remember { mutableStateOf<String?>(null) }
     var exportNote by remember { mutableStateOf<String?>(null) }
     var securityNote by remember { mutableStateOf<String?>(null) }
     val smsGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
@@ -159,6 +160,11 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
                 SectionLabel("Testing (debug builds only)")
                 Text("Text size on top of the system setting, to check large-text layouts.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
                 dev.kosh.financetracker.ui.components.ChoiceChips(listOf(1f, 1.3f, 1.6f, 2f), scale, { "${it}\u00D7" }, viewModel.debugOptions::setFontScale)
+                if (viewModel.koshImporter.available()) {
+                    Text("A copy of the old Kosh data is on this phone. Importing merges it in; nothing is overwritten, and it only runs once.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+                    dev.kosh.financetracker.ui.components.SecondaryButton("Import Kosh data", { scope.launch { importNote = viewModel.koshImporter.import() } }, Modifier.fillMaxWidth())
+                }
+                importNote?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.accentText) }
             }
 
             SectionLabel("About")

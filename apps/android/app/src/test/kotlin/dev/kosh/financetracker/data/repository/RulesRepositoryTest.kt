@@ -38,6 +38,7 @@ class RulesRepositoryTest {
         val ctx = ApplicationProvider.getApplicationContext<Application>()
         db = Room.inMemoryDatabaseBuilder(ctx, FinanceDatabase::class.java).allowMainThreadQueries().build()
         entitlements = Entitlements(ctx)
+        entitlements.setDebugPlus(false)   // debug builds default to Plus; the test controls the tier through Play results
         entitlements.onPlayResult(true, "tinward_plus")
         repo = RulesRepository(db, db.ruleDao(), db.transactionDao(), entitlements)
     }

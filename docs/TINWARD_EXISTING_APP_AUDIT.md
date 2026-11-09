@@ -204,3 +204,21 @@ Plus feature from spec section 4.7.
 - **Verification.** 21 new tests (engine 15, repository 5, migration 1): matching, inclusive ranges, priority, fill-vs-overwrite, apply, undo, undo after later edit, Plus gate, ordering, disabling. Full suite 338 pass. On the phone: Free view (gate), Plus view, creating a rule with live match count, apply with confirmation, result visible in Activity (Test Stream became Entertainment with a label), Undo, re-apply.
 - **Found by testing on the phone:** treating Other as "already set" meant the default rule never filled the categoriser's fallback; now Other counts as undecided, stated in the UI.
 - **Limits.** Arrival-time rules run before transfer detection, so a rule could label a row that is later recognised as a transfer (the label stays, the amount is still excluded from spending). Matching is a plain case-insensitive "contains"; there is no regex, OR or "not" condition. Not tested with a real incoming SMS.
+
+## 15. Kosh data import and layout pass (2026-11-09)
+
+**Plus by default (development builds only).** In debuggable builds (the `preview` and `debug` types) Plus is on unless the debug switch is turned off. Release builds ignore the switch, so the paywall and Play billing are unaffected.
+
+**Moving the old Kosh data into Tinward.** The Kosh app held 1,583 transactions (269 from SMS, 1,312 from imported statements, 2 manual), 8 remembered merchant categories, a monthly income of 49,800 and nine fixed monthly expenses. The statement rows cannot be recreated from SMS, so Tinward alone held only part of the history. A development-only importer (`data/debug/KoshImporter.kt`, reached from the debug section of Settings) merged a copy of Kosh's database: Kosh's database is plain SQLite at version 7, which Tinward's own migrations start from, so rows map one to one. Details:
+- The copy was taken read-only with `run-as` and never modified; the Kosh app was not touched. Tinward's previous test data was backed up in full before it was cleared.
+- Order matters: Tinward's own SMS scan first, then the import. Kosh names a message by its bank reference (`sms:SENDER:ref:N`) while Tinward uses sender, time and a hash, so the same message would otherwise exist twice. The importer skips a Kosh SMS row when Tinward already has one with the same bank, card, amount and direction within two minutes (258 of 269 matched; 11 older ones were kept).
+- References held in Kosh's row ids are copied into `transactionRef`, and the existing source matching then linked 70 SMS rows to their statement rows.
+- Fixed expenses became monthly bills, and income became the monthly income. Opening balances of bank accounts were set from the last balance a statement reported (Tinward's normal rule), because the accounts first appear from SMS alone with an unknown opening.
+- Result on the phone: 1,325 rows added, 9 bills, 3 account balances set.
+
+**Known differences and things to verify**
+- November spending is 56,826 in Tinward against 91,131 in Kosh. Kosh counted every debit marked as an expense; Tinward leaves out card repayments (Slice 16,192 and 2,340, the HDFC card bill 6,156) and a 10,000 move to the user's own Kotak account, since that spending is counted when the card is used. This is the intended rule in the product spec.
+- Account balances are estimates built from statement balances plus later SMS. HDFC 5590 (5,691) agrees with the last reported SMS balance less later debits. Kotak 9996 (95,047) comes from a September statement balance and is not independently confirmed. Slice 8384 shows a negative balance that does not agree with its own SMS balances; treat it as unverified and correct it with "Correct balance".
+- The importer is a development tool and should be removed before a public release.
+
+**Layout pass at 2x text.** Fixed: bill rows collapsed to one letter per line, the Home "cash after bills" card squeezed its label, and the Spent / Planned income amounts broke across lines. First-run: the empty Home had no way to reach Settings and the SMS-permission screen was a dead end for people who decline; both now offer scan, import and add-by-hand. Onboarding copy no longer points at the wrong screen.
