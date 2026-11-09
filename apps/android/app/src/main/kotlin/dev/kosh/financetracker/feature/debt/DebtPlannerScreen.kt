@@ -96,10 +96,14 @@ row.history.forEach { p ->
                 SectionLabel("Pay it off")
                 TinwardTextField(ui.budgetText, viewModel::setBudget, "Total you can pay toward cards each month (${ui.currency})", numeric = true)
                 val minimums = ui.outcomes.firstOrNull { it.strategy == Strategy.MINIMUMS }?.result
-                ui.outcomes.forEach { o ->
+                // With one card (or when both orders give the same result) two identical strategy cards are just noise.
+                val avalanche = ui.outcomes.firstOrNull { it.strategy == Strategy.AVALANCHE }
+                val snowball = ui.outcomes.firstOrNull { it.strategy == Strategy.SNOWBALL }
+                val merged = avalanche != null && snowball != null && avalanche.result == snowball.result
+                (if (merged) ui.outcomes.filter { it.strategy != Strategy.SNOWBALL } else ui.outcomes).forEach { o ->
                     KoshCard {
                         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            Text(o.strategy.label, style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                            Text(if (merged && o.strategy == Strategy.AVALANCHE) "Your payoff plan" else o.strategy.label, style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
                             val months = o.result.months
                             if (months == null) Text(
                                 if (o.strategy == Strategy.MINIMUMS) "Would take more than 50 years at the minimums, because most of each payment is interest." else "This payment does not clear the debt within 50 years. Try a higher amount.",

@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.drawText
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.kosh.financetracker.core.finance.EventKind
 import dev.kosh.financetracker.core.finance.MoneyTimeline
@@ -162,21 +164,55 @@ private fun Summary(t: MoneyTimeline, baseline: MoneyTimeline?) {
 @Composable
 private fun Box2(t: MoneyTimeline) {
     val line = Tinward.colors.accent
-    val zero = Tinward.colors.negative
-    val track = Tinward.colors.divider
+    val bad = Tinward.colors.negative
+    val grid = Tinward.colors.divider
+    val surface = Tinward.colors.surface
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val label = androidx.compose.ui.text.TextStyle(fontSize = 10.sp, color = Tinward.colors.textTertiary)
     val min = t.points.minOf { it.balance }.min(BigDecimal.ZERO).toFloat()
     val max = t.points.maxOf { it.balance }.max(BigDecimal.ZERO).toFloat()
     val span = (max - min).takeIf { it > 0f } ?: 1f
-    Canvas(Modifier.fillMaxWidth().height(160.dp).padding(Spacing.md).semantics { contentDescription = "Line chart of expected balance over ${t.days} days. Lowest ${t.lowest.balance} on ${t.lowest.date}." }) {
-        fun y(v: Float) = size.height - (v - min) / span * size.height
-        drawLine(track, Offset(0f, y(0f)), Offset(size.width, y(0f)), strokeWidth = 1.dp.toPx())
+    val dayFmt = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+    val lowIndex = t.points.indexOfFirst { it.date == t.lowest.date && it.balance.compareTo(t.lowest.balance) == 0 }.coerceAtLeast(0)
+    fun short(v: Float) = dev.kosh.financetracker.ui.format.compactMoney(BigDecimal(v.toDouble()), t.currency)
+    Canvas(Modifier.fillMaxWidth().height(190.dp).padding(Spacing.md).semantics { contentDescription = "Line chart of expected balance over ${t.days} days. Lowest ${t.lowest.balance} on ${t.lowest.date}." }) {
+        val bottomPad = 18.dp.toPx(); val topPad = 14.dp.toPx()
+        val h = size.height - bottomPad - topPad
+        fun y(v: Float) = topPad + h - (v - min) / span * h
+        fun x(i: Int) = i.toFloat() / (t.points.size - 1).coerceAtLeast(1) * size.width
+        // Zero line (red when the balance dips below it), plus labelled top and bottom of the range.
+        drawLine(if (min < 0f) bad.copy(alpha = 0.5f) else grid, Offset(0f, y(0f)), Offset(size.width, y(0f)), strokeWidth = 1.dp.toPx())
+        listOf(max to true, min to false).filter { (v, _) -> v != 0f }.forEach { (v, _) ->
+            drawLine(grid.copy(alpha = 0.4f), Offset(0f, y(v)), Offset(size.width, y(v)), 1.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f, 8f)))
+            val tl = measurer.measure(short(v), label)
+            drawText(tl, topLeft = Offset(0f, y(v) - tl.size.height - 1.dp.toPx()))   // always above its own line, clear of the dates below
+        }
+        val z = measurer.measure("0", label)
+        drawText(z, topLeft = Offset(size.width - z.size.width, y(0f) - z.size.height - 1.dp.toPx()))
+        // Step line with a soft tint down to the zero line.
         val path = Path()
         t.points.forEachIndexed { i, p ->
-            val x = i.toFloat() / (t.points.size - 1).coerceAtLeast(1) * size.width
-            if (i == 0) path.moveTo(x, y(p.balance.toFloat())) else path.lineTo(x, y(p.balance.toFloat()))
+            val px = x(i); val py = y(p.balance.toFloat())
+            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
         }
-        drawPath(path, line, style = Stroke(width = 2.5.dp.toPx()))
-        if (min < 0f) drawLine(zero.copy(alpha = 0.35f), Offset(0f, y(0f)), Offset(size.width, y(0f)), strokeWidth = 1.5.dp.toPx())
+        val area = Path().apply { addPath(path); lineTo(x(t.points.size - 1), y(0f)); lineTo(0f, y(0f)); close() }
+        drawPath(area, line.copy(alpha = 0.12f))
+        drawPath(path, line, style = Stroke(width = 2.5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        // Today marker and the lowest point.
+        drawCircle(surface, 5.5.dp.toPx(), Offset(x(0), y(t.points.first().balance.toFloat())))
+        drawCircle(line, 4.dp.toPx(), Offset(x(0), y(t.points.first().balance.toFloat())))
+        val low = t.points[lowIndex]
+        if (low.balance.signum() < 0 || lowIndex != 0) {
+            drawCircle(surface, 5.5.dp.toPx(), Offset(x(lowIndex), y(low.balance.toFloat())))
+            drawCircle(if (low.balance.signum() < 0) bad else line, 4.dp.toPx(), Offset(x(lowIndex), y(low.balance.toFloat())))
+        }
+        // Dates along the bottom: today, middle, last day.
+        listOf(0, t.points.size / 2, t.points.size - 1).distinct().forEach { i ->
+            val text = if (i == 0) "Today" else t.points[i].date.format(dayFmt)
+            val tl = measurer.measure(text, label)
+            val left = when (i) { 0 -> 0f; t.points.size - 1 -> size.width - tl.size.width; else -> (x(i) - tl.size.width / 2f) }
+            drawText(tl, topLeft = Offset(left, size.height - tl.size.height))
+        }
     }
 }
 

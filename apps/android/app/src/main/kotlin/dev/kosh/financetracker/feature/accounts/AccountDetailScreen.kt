@@ -60,6 +60,7 @@ fun AccountDetailScreen(
 ) {
     val ui by viewModel.state.collectAsState()
     var sheet by remember { mutableStateOf<Sheet>(Sheet.None) }
+    var visible by remember { mutableStateOf(50) }
     val p = ui.position
     Column(Modifier.fillMaxSize().background(Tinward.colors.background)) {
         ScreenHeader(p?.account?.name ?: "Account", onBack = onBack, actions = {
@@ -93,7 +94,7 @@ fun AccountDetailScreen(
                             if (dates.isNotEmpty()) Text(dates.joinToString(", "), style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
                         }
                         Text(
-                            "Calculated from the opening amount and recorded transactions, so it is an estimate, not a bank-verified figure.",
+                            "An estimate from your records, not a bank-verified figure.",
                             style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary,
                         )
                     }
@@ -120,12 +121,15 @@ fun AccountDetailScreen(
             else item {
                 KoshCard {
                     Column {
-                        ui.transactions.take(50).forEachIndexed { i, t ->
+                        ui.transactions.take(visible).forEachIndexed { i, t ->
                             TxRow(t, onClick = { onOpenTransaction(t.id) })
-                            if (i < minOf(ui.transactions.size, 50) - 1) HorizontalDivider(color = Tinward.colors.divider)
+                            if (i < minOf(ui.transactions.size, visible) - 1) HorizontalDivider(color = Tinward.colors.divider)
                         }
                     }
                 }
+            }
+            if (ui.transactions.size > visible) item {
+                SecondaryButton("Show more (${ui.transactions.size - visible} older)", { visible += 50 }, Modifier.fillMaxWidth())
             }
             item {
                 SecondaryButton(if (a.archived) "Restore this account" else "Archive this account", { viewModel.setArchived(!a.archived) }, Modifier.fillMaxWidth())
@@ -147,13 +151,19 @@ fun AccountDetailScreen(
 @Composable
 private fun TxRow(t: Transaction, onClick: () -> Unit) {
     val debit = t.direction == TransactionDirection.DEBIT
+    val subtitle = listOfNotNull(
+        t.category?.takeIf { it != dev.kosh.financetracker.core.model.TransactionCategory.UNCATEGORIZED }?.let { dev.kosh.financetracker.ui.components.labelFor(it) },
+        t.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy")),
+    ).joinToString(" \u00B7 ")
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClick = onClick).padding(horizontal = Spacing.md, vertical = Spacing.sm),
-        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
+        Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable(onClick = onClick).padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        dev.kosh.financetracker.ui.components.CategoryIconTile(t.category, t.merchant ?: "?", size = 36.dp)
+        androidx.compose.foundation.layout.Spacer(Modifier.padding(start = Spacing.ms))
         Column(Modifier.weight(1f)) {
-            Text(t.merchant ?: "Unknown", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
-            Text(t.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy")), style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
+            Text(t.merchant ?: "Unknown", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary, maxLines = 1)
         }
         Text(
             (if (debit) "\u2212" else "+") + formatMoney(t.amount, currencyCode = t.currency),
