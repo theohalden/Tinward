@@ -47,6 +47,7 @@ val PLUS_FEATURES = listOf(
     "More than one savings goal" to "Save for several things at once.",
     "Financial Review" to "Top merchants, what rose or fell since last month, your spending pace, savings rate and how much of your income is already committed to bills.",
     "Debt planner" to "For credit cards: how long debt takes to clear, what it costs in interest, how much of each limit you use month by month, and highest-interest-first versus smallest-first.",
+    "Custom rules" to "Write your own rules, like merchant contains swiggy then Food. They label new and existing transactions, show what they will do first, and can be undone. They never move money.",
 )
 
 @HiltViewModel

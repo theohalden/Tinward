@@ -30,6 +30,7 @@ class CsvImportRepository @Inject constructor(
     private val database: FinanceDatabase,
     private val dao: TransactionDao,
     private val transactions: TransactionRepository,
+    private val rules: RulesRepository,
 ) {
     /** What the account already holds, for duplicate checks. */
     suspend fun existingFor(account: Account, allAccounts: List<Account>): List<Transaction> {
@@ -44,7 +45,7 @@ class CsvImportRepository @Inject constructor(
      */
     suspend fun import(account: Account, rows: List<PlannedRow>, zone: ZoneId = ZoneId.systemDefault()): CsvImportResult {
         val occurrences = HashMap<String, Int>()
-        var added = 0; var present = 0
+        var added = 0; var present = 0; val newIds = ArrayList<Long>()
         database.withTransaction {
             for (row in rows.filter { it.status == RowStatus.NEW }) {
                 val date = row.date ?: continue; val amount = row.amount ?: continue; val direction = row.direction ?: continue
@@ -64,10 +65,12 @@ class CsvImportRepository @Inject constructor(
                     paymentMethod = PaymentMethod.UNKNOWN, source = TransactionSource.CSV, sourceMessageId = "$key:$n", rawSourceText = null,
                     confidence = 0.9, notes = null, createdAt = Instant.now(), balanceAfter = row.balance, currency = account.currency,
                 )
-                if (dao.insertIfNew(tx.toEntity()) == -1L) present++ else added++
+                val newId = dao.insertIfNew(tx.toEntity())
+                if (newId == -1L) present++ else { added++; newIds += newId }
             }
         }
         transactions.reconcileTransfers(); transactions.reconcileIncomeClassification(); transactions.reconcileCategories()
+        rules.applyToNew(newIds)
         return CsvImportResult(added, present)
     }
 }

@@ -21,8 +21,8 @@ Date: 2026-11-08. Branch `claude/jovial-wright-e59e8c`. Everything below says wh
 
 | Check | Result | Evidence |
 |---|---|---|
-| Unit tests | **317 pass, 0 fail** | `testDebugUnitTest`: ledger invariants, parsers (28 regional fixtures), CSV, planning, timeline, rollover, review, debt, entitlement, security |
-| Database upgrade | **Pass** | `DatabaseMigrationTest`: builds genuine version 7 and version 8 databases, upgrades to 13, Room validates the schema, every row survives, new columns default safely, unique index still works, soft delete works, reopen keeps new data |
+| Unit tests | **338 pass, 0 fail** | `testDebugUnitTest`: ledger invariants, parsers (28 regional fixtures), CSV, planning, timeline, rollover, review, debt, entitlement, security |
+| Database upgrade | **Pass** | `DatabaseMigrationTest`: builds genuine version 7 and version 8 databases, upgrades to 14, Room validates the schema, every row survives, new columns default safely, unique index still works, soft delete works, reopen keeps new data |
 | Ledger invariants | Pass | `AccountLedgerTest` (17) covers the spec's rules for transfers, cards, cash, refunds, adjustments, currencies |
 | Performance with a long history | **Fixed, then pass** | 20,000 transactions: every calculation under 100 ms except ledger projection (0.7 s). The projection and transfer matching were quadratic (11.7 s at 40,000 rows); both are now indexed and a test fails if the curve stops being linear (10k to 40k ratio 3.8) |
 | Lint (release) | **0 errors**, 59 warnings | One real error fixed (notification permission re-check). Warnings: outdated dependencies, harmless typos in Google's font certificate data, intentional `commit()` in the lock code (documented), one Compose parameter-order nit |
@@ -81,9 +81,10 @@ Note for the form: Google's billing library may send its own diagnostics through
 - More than one savings goal.
 - Financial Review: top merchants, category changes, spending pace, savings rate, share of income committed to bills.
 - Debt planner for credit cards: payoff time, interest, highest-interest-first versus smallest-first, limit use by month.
+- Custom rules: your own "if merchant contains / amount between / money in or out / this account, then set category and label" rules, in a priority order you can see, applied to new bank messages and imports and, when you choose, to existing transactions, with undo. Rules never change amounts or dates and never move money.
 - If Plus ends: everything stays, Plus-only items pause, nothing is deleted, export and backup still work.
 
-**Not included, so do not advertise:** custom automation rules, custom budget periods, loan tracking, bank sync, web or iOS apps, cloud sync, multi-user, non-English SMS, any claim that SMS works for "all banks".
+**Not included, so do not advertise:** rules that flag for review or mark recurring, rules that run on statement-file imports, custom budget periods, loan tracking, bank sync, web or iOS apps, cloud sync, multi-user, non-English SMS, any claim that SMS works for "all banks".
 
 ## 7. Known limitations (carry into the store text where relevant)
 
@@ -93,6 +94,7 @@ Note for the form: Google's billing library may send its own diagnostics through
 - Forgetting the PIN cannot be recovered without an encrypted backup (there is no server to reset it).
 - An SMS arriving after a CSV covering the same day was imported can create a duplicate.
 - Reminders use a small date-only cache refreshed when the app is opened, covering the next 45 days.
+- Custom rules match plain text only (no regex, no OR/NOT) and only set category and label.
 - Statements in `.xls`/`.xlsx` are supported only for the three built-in banks.
 
 ## 8. Not yet verified

@@ -90,6 +90,7 @@ class RoomTransactionRepository @Inject constructor(
     private val dao: TransactionDao,
     private val merchantCategoryMappingDao: MerchantCategoryMappingDao,
     private val database: FinanceDatabase,
+    private val rulesRepository: RulesRepository? = null,
 ) : TransactionRepository {
 
     override fun observeTransactions(): Flow<List<Transaction>> =
@@ -109,7 +110,9 @@ class RoomTransactionRepository @Inject constructor(
         val id = dao.insertIfNew(transaction.toEntity())
         if (id == -1L) return@withTransaction false
         reconcileSourceObservations()
-        database.sourceLinkDao().getAll().none { it.observationId == id }
+        val counted = database.sourceLinkDao().getAll().none { it.observationId == id }
+        if (counted) rulesRepository?.applyToNew(listOf(id))
+        counted
     }
 
     private suspend fun reconcileSourceObservations(): Int {

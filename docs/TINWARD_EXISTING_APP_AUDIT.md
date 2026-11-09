@@ -188,3 +188,19 @@ Full detail and the blocker list are in `docs/RELEASE_READINESS.md`. Summary of 
 
 Open items are all in the blocker table of the readiness document.
 
+
+## 14. Custom rules record (2026-11-09)
+
+Plus feature from spec section 4.7.
+
+- **What a rule is.** Conditions (all must hold): merchant contains, amount from/to (inclusive), money in or out, one account. A rule with no condition is not allowed. Actions: set a category, set the user's own label. "Replace what is already set" is off by default, in which case a rule only fills a blank (no category, or Other, which is the categoriser's fallback) and never overrides the user's own choice. Mark-for-review and recurring classification are not built and are not offered.
+- **What a rule never does.** It never changes an amount, date, account, type or the original message, never touches transfers, card payments, cash withdrawals or adjustments, never touches entries added by hand, and never moves money. The original SMS text is not searched.
+- **Priority is visible and decisive.** Rules are numbered; Up/Down reorders; the first enabled rule that matches decides, even when it ends up changing nothing, so a higher rule always beats a lower one. Each rule is shown as a plain sentence ("If the merchant contains "stream", set the category to Entertainment and add the label "Subscriptions". Only fills blanks (no category, or Other).").
+- **Consequences shown before they happen.** The editor shows a live count of matching transactions; "Apply to existing transactions" shows how many would change and asks first.
+- **Undo.** Every application (by hand or on arrival) writes a batch to `rule_changes` with the old and new values. Undo restores only entries that still hold the value the rule wrote, so anything the user changed afterwards is left alone. Rules can also be switched off or deleted.
+- **When rules run.** New SMS (live and scan) and CSV rows are checked as they arrive (`saveIfNew`, `CsvImportRepository`); existing data only when the user asks. Statement-file imports (PDF/Excel) are not hooked in yet.
+- **Plus and downgrade.** Without Plus nothing is applied and the screen shows an explanation; saved rules are kept, paused, and shown as such. Nothing is deleted.
+- **Storage.** `MIGRATION_13_14` adds `auto_rules` and `rule_changes` (new tables only); backup restore now accepts version 14.
+- **Verification.** 21 new tests (engine 15, repository 5, migration 1): matching, inclusive ranges, priority, fill-vs-overwrite, apply, undo, undo after later edit, Plus gate, ordering, disabling. Full suite 338 pass. On the phone: Free view (gate), Plus view, creating a rule with live match count, apply with confirmation, result visible in Activity (Test Stream became Entertainment with a label), Undo, re-apply.
+- **Found by testing on the phone:** treating Other as "already set" meant the default rule never filled the categoriser's fallback; now Other counts as undecided, stated in the UI.
+- **Limits.** Arrival-time rules run before transfer detection, so a rule could label a row that is later recognised as a transfer (the label stays, the amount is still excluded from spending). Matching is a plain case-insensitive "contains"; there is no regex, OR or "not" condition. Not tested with a real incoming SMS.

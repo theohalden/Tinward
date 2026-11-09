@@ -90,9 +90,9 @@ fun PrimaryButton(label: String, onClick: () -> Unit, modifier: Modifier = Modif
 }
 
 @Composable
-fun SecondaryButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun SecondaryButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     OutlinedButton(
-        onClick = onClick,
+        onClick = onClick, enabled = enabled,
         modifier = modifier.heightIn(min = 48.dp),
         shape = RoundedCornerShape(14.dp),
         border = BorderStroke(1.dp, Tinward.colors.divider),

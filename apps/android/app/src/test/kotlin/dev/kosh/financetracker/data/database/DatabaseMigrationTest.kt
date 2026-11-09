@@ -62,7 +62,7 @@ class DatabaseMigrationTest {
         .allowMainThreadQueries()
         .addMigrations(
             FinanceDatabase.MIGRATION_7_8, FinanceDatabase.MIGRATION_8_9, FinanceDatabase.MIGRATION_9_10,
-            FinanceDatabase.MIGRATION_10_11, FinanceDatabase.MIGRATION_11_12, FinanceDatabase.MIGRATION_12_13,
+            FinanceDatabase.MIGRATION_10_11, FinanceDatabase.MIGRATION_11_12, FinanceDatabase.MIGRATION_12_13, FinanceDatabase.MIGRATION_13_14,
         ).build()
 
     private fun checkUpgraded(db: FinanceDatabase) = runBlocking {
@@ -112,6 +112,19 @@ class DatabaseMigrationTest {
             checkUpgraded(db)
             // version 7 had no transactionRef: it is simply empty after upgrade
             runBlocking { assertTrue(db.transactionDao().getAllObservations().all { it.transactionRef == null }) }
+        } finally { db.close() }
+    }
+
+    @Test fun `the rules tables arrive empty and usable after upgrade`() {
+        createOldDatabase(8)
+        val db = open()
+        try {
+            runBlocking {
+                assertTrue(db.ruleDao().getRules().isEmpty())
+                val id = db.ruleDao().insert(AutoRuleEntity(name = "Food", enabled = true, position = 0, merchantContains = "swiggy", amountMin = null, amountMax = null, direction = "ANY", accountId = null, setCategory = null, setLabel = "x", overwrite = false))
+                assertEquals(id, db.ruleDao().getRules().single().id)
+                assertEquals(3, db.transactionDao().getAllObservations().size)
+            }
         } finally { db.close() }
     }
 

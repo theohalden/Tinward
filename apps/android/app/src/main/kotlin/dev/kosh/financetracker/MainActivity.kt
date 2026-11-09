@@ -220,7 +220,8 @@ private fun KoshApp() {
             composable(KoshDestination.Plus.route) { dev.kosh.financetracker.feature.plus.PaywallScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.ImportCsv.route) { dev.kosh.financetracker.feature.importcsv.ImportCsvScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Deleted.route) { dev.kosh.financetracker.feature.deleted.DeletedScreen(onBack = { navController.popBackStack() }) }
-            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }, onOpenDeleted = { navController.navigate(KoshDestination.Deleted.route) }, onOpenImportCsv = { navController.navigate(KoshDestination.ImportCsv.route) }, onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }) }
+            composable(KoshDestination.Settings.route) { SettingsScreen(onBack = { navController.popBackStack() }, onOpenDeleted = { navController.navigate(KoshDestination.Deleted.route) }, onOpenImportCsv = { navController.navigate(KoshDestination.ImportCsv.route) }, onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }, onOpenRules = { navController.navigate(KoshDestination.Rules.route) }) }
+            composable(KoshDestination.Rules.route) { dev.kosh.financetracker.feature.rules.RulesScreen(onBack = { navController.popBackStack() }, onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }) }
             composable(KoshDestination.Detail.route) {
                 TransactionDetailScreen(
                     onBack = { navController.popBackStack() },

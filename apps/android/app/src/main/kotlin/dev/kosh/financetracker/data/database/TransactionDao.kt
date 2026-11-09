@@ -40,6 +40,9 @@ interface TransactionDao {
     @Query("UPDATE transactions SET category = :category WHERE id = :id")
     suspend fun updateCategory(id: Long, category: TransactionCategory)
 
+    @Query("UPDATE transactions SET customLabel = :label WHERE id = :id")
+    suspend fun updateCustomLabel(id: Long, label: String?)
+
     @Query("UPDATE transactions SET category = :category WHERE id IN (:ids)")
     suspend fun updateCategories(ids: List<Long>, category: TransactionCategory)
 

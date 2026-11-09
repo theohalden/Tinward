@@ -48,7 +48,7 @@ import dev.kosh.financetracker.ui.theme.Tinward
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCsv: () -> Unit, onOpenPlus: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCsv: () -> Unit, onOpenPlus: () -> Unit, onOpenRules: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val appearance by viewModel.appearance.collectAsState()
@@ -100,6 +100,8 @@ fun SettingsScreen(onBack: () -> Unit, onOpenDeleted: () -> Unit, onOpenImportCs
                 }
                 HorizontalDivider(color = Tinward.colors.divider)
                 ActionRow("Import a CSV file", "Add transactions from a statement you downloaded, any bank.") { onOpenImportCsv() }
+                HorizontalDivider(color = Tinward.colors.divider)
+                ActionRow("Rules (Plus)", "Label transactions automatically, with undo.") { onOpenRules() }
                 HorizontalDivider(color = Tinward.colors.divider)
                 ActionRow("Recently deleted", "Restore transactions you removed.") { onOpenDeleted() }
                 HorizontalDivider(color = Tinward.colors.divider)

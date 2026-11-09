@@ -8,8 +8,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [TransactionEntity::class, MerchantCategoryMappingEntity::class, TransactionSourceLink::class, AccountEntity::class,
-        RecurringEntity::class, BudgetEntity::class, GoalEntity::class],
-    version = 13,
+        RecurringEntity::class, BudgetEntity::class, GoalEntity::class, AutoRuleEntity::class, RuleChangeEntity::class],
+    version = 14,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -19,6 +19,7 @@ abstract class FinanceDatabase : RoomDatabase() {
     abstract fun sourceLinkDao(): TransactionSourceLinkDao
     abstract fun accountDao(): AccountDao
     abstract fun planningDao(): PlanningDao
+    abstract fun ruleDao(): RuleDao
 
     companion object {
         const val DB_NAME = "finance-tracker.db"
@@ -87,6 +88,14 @@ abstract class FinanceDatabase : RoomDatabase() {
         val MIGRATION_12_13 = object : Migration(12, 13) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE accounts ADD COLUMN apr TEXT")
+            }
+        }
+
+        /** Custom rules (Plus) and the log that lets every change they make be undone. New tables only. */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS auto_rules (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, enabled INTEGER NOT NULL, position INTEGER NOT NULL, merchantContains TEXT, amountMin TEXT, amountMax TEXT, direction TEXT NOT NULL, accountId INTEGER, setCategory TEXT, setLabel TEXT, overwrite INTEGER NOT NULL)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS rule_changes (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, batchId INTEGER NOT NULL, transactionId INTEGER NOT NULL, ruleId INTEGER NOT NULL, ruleName TEXT NOT NULL, oldCategory TEXT, oldLabel TEXT, newCategory TEXT, newLabel TEXT, appliedAtEpochMillis INTEGER NOT NULL, automatic INTEGER NOT NULL, undone INTEGER NOT NULL)")
             }
         }
     }
