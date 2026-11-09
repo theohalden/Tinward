@@ -25,13 +25,16 @@ fun SpendTrendChart(
     days: List<DaySpend>,
     color: Color,
     modifier: Modifier = Modifier,
+    chartHeight: androidx.compose.ui.unit.Dp = 160.dp,
+    highlightPeak: Boolean = false,
+    peakColor: Color = color,
 ) {
     val maxAmount = days.maxOfOrNull { it.amount } ?: BigDecimal.ZERO
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(160.dp)
+            .height(chartHeight)
             .semantics {
                 contentDescription = if (days.size >= 2) {
                     "Daily spending for the month, ${days.size} days of data"
@@ -51,12 +54,52 @@ fun SpendTrendChart(
             val fraction = (day.amount.toFloat() / maxAmount.toFloat()).coerceIn(0.02f, 1f)
             val barHeight = maxBarHeight * fraction
             val x = index * (barWidth + gap)
+            val isPeak = highlightPeak && day.amount == maxAmount
             drawRoundRect(
-                color = color,
+                color = if (highlightPeak && !isPeak) color.copy(alpha = 0.55f) else if (isPeak) peakColor else color,
                 topLeft = Offset(x, maxBarHeight - barHeight),
                 size = Size(barWidth, barHeight),
                 cornerRadius = CornerRadius(barWidth / 2, barWidth / 2),
             )
+        }
+    }
+}
+
+/**
+ * Daily bars with a readable frame: day-of-month under the chart, and the busiest day called out in words.
+ * Real daily totals only; days with nothing spent are flat.
+ */
+@Composable
+fun DailySpendChart(
+    days: List<DaySpend>,
+    color: Color,
+    currencyCode: String,
+    hidden: Boolean = false,
+    chartHeight: androidx.compose.ui.unit.Dp = 140.dp,
+    modifier: Modifier = Modifier,
+) {
+    val peak = days.maxByOrNull { it.amount }?.takeIf { it.amount.signum() > 0 }
+    androidx.compose.foundation.layout.Column(modifier, verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+        peak?.let {
+            androidx.compose.material3.Text(
+                "Busiest day: " + it.date.format(java.time.format.DateTimeFormatter.ofPattern("d MMM")) + " \u00B7 " + dev.kosh.financetracker.ui.format.compactMoney(it.amount, currencyCode, hidden),
+                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                color = dev.kosh.financetracker.ui.theme.Tinward.colors.textSecondary,
+            )
+        }
+        SpendTrendChart(days, color, chartHeight = chartHeight, highlightPeak = true, peakColor = dev.kosh.financetracker.ui.theme.Tinward.colors.accentText)
+        if (days.size >= 2) {
+            // Evenly spaced day numbers under the bars (first, a few between, last).
+            val ticks = listOf(0, days.size / 4, days.size / 2, days.size * 3 / 4, days.size - 1).distinct()
+            androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween) {
+                ticks.forEach { i ->
+                    androidx.compose.material3.Text(
+                        days[i].date.dayOfMonth.toString(),
+                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                        color = dev.kosh.financetracker.ui.theme.Tinward.colors.textTertiary,
+                    )
+                }
+            }
         }
     }
 }

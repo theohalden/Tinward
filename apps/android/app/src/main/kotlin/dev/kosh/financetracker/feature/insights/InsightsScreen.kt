@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +54,7 @@ import kotlin.math.roundToInt
 fun InsightsScreen(
     onBack: () -> Unit,
     onOpenPlus: () -> Unit,
+    onOpenReview: (() -> Unit)? = null,
     viewModel: InsightsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -83,6 +85,14 @@ fun InsightsScreen(
                             Text("No categorised spending this month yet.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textTertiary)
                         } else {
                             Donut(state.categoryBreakdown, formatMoney(state.monthSummary.expense))
+                            val unsorted = state.categoryBreakdown.firstOrNull { it.category == dev.kosh.financetracker.core.model.TransactionCategory.UNCATEGORIZED }
+                            if (unsorted != null && unsorted.fraction >= 0.3f && onOpenReview != null) {
+                                Text(
+                                    "${(unsorted.fraction * 100).toInt()}% of this month is not categorised yet, so the chart is mostly grey. Review a few to sharpen it.",
+                                    style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary,
+                                )
+                                TextButton(onClick = onOpenReview) { Text("Review transactions", color = Tinward.colors.accentText) }
+                            }
                         }
                     }
                 }
@@ -110,7 +120,7 @@ fun InsightsScreen(
             item {
                 KoshCard {
                     Box(Modifier.padding(Spacing.md)) {
-                        SpendTrendChart(days = state.dailySpend, color = Tinward.colors.accent)
+                        dev.kosh.financetracker.ui.components.DailySpendChart(days = state.dailySpend, color = Tinward.colors.accent, currencyCode = state.currency)
                     }
                 }
             }
@@ -186,7 +196,12 @@ private fun TrendCard(state: InsightsUiState) {
                     state.trend.forEach { p ->
                         val selected = p.month == state.selectedMonth
                         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(Modifier.height(116.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(
+                                if (p.spent.signum() > 0) dev.kosh.financetracker.ui.format.compactMoney(p.spent, state.currency) else "",
+                                style = MaterialTheme.typography.labelSmall, maxLines = 1,
+                                color = if (selected) Tinward.colors.textPrimary else Tinward.colors.textTertiary,
+                            )
+                            Row(Modifier.height(100.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Bar(p.income.toFloat() / max.toFloat(), incomeColor.copy(alpha = if (selected) 1f else 0.45f))
                                 Bar(p.spent.toFloat() / max.toFloat(), spentColor.copy(alpha = if (selected) 1f else 0.55f))
                             }

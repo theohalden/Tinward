@@ -47,6 +47,8 @@ data class OverviewUiState(
     val totalCount: Int = 0,
     val needsReviewCount: Int = 0,
     val hasAnyData: Boolean = false,
+    /** False only until the first real read of the database, so empty-state screens never flash on unlock. */
+    val loaded: Boolean = false,
     /** Income declared in Plan; used when no income is recorded for the month. */
     val plannedIncome: BigDecimal? = null,
     /** Bills and credit card payments in the next two weeks, soonest first. */
@@ -104,6 +106,7 @@ class OverviewViewModel @Inject constructor(
             totalCount = transactions.size,
             needsReviewCount = FinanceCalculator.uncategorizedCountForMonth(transactions, month, zone),
             hasAnyData = transactions.isNotEmpty(),
+            loaded = true,
             plannedIncome = plannedIncome?.takeIf { it.signum() > 0 },
             upcoming = (
                 pendingAll.filter { it.item.kind == RecurringKind.BILL && it.item.currency == base && !it.date.isAfter(today.plusDays(14)) }

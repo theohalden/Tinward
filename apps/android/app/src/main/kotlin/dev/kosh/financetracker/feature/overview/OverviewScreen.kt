@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -133,13 +134,15 @@ fun OverviewScreen(
             .background(Tinward.colors.background),
     ) {
         when {
+            !state.loaded -> LoadingState()
+
             !hasPermission && !state.hasAnyData -> PermissionGate(
                 onGrant = {
                     permissionLauncher.launch(arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS))
                 },
             )
 
-            syncState.isSyncing && !state.hasAnyData -> LoadingState()
+            syncState.isSyncing && !state.hasAnyData -> LoadingState(syncing = true)
 
             !state.hasAnyData -> EmptyHomeState(onScan = viewModel::sync)
 
@@ -228,18 +231,30 @@ private fun PrimaryButton(label: String, onClick: () -> Unit, modifier: Modifier
 }
 
 @Composable
-private fun LoadingState() {
+private fun LoadingState(syncing: Boolean = false) {
+    // Placeholder blocks in the shape of Home, so unlocking settles into the real screen instead of flashing a different one.
+    val pulse = androidx.compose.animation.core.rememberInfiniteTransition(label = "skeleton")
+    val alpha by pulse.animateFloat(
+        0.35f, 0.7f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha",
+    )
+    val block = Tinward.colors.raised.copy(alpha = alpha)
     Column(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(Spacing.md),
+            .padding(horizontal = Spacing.md, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         KoshWordmark()
-        Spacer(Modifier.height(Spacing.xxl))
-        CircularProgressIndicator(color = Tinward.colors.accent)
-        Text("Reading your bank SMS\u2026", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+        Spacer(Modifier.height(Spacing.sm))
+        Box(Modifier.width(120.dp).height(14.dp).background(block, RoundedCornerShape(7.dp)))
+        Box(Modifier.width(240.dp).height(48.dp).background(block, RoundedCornerShape(12.dp)))
+        Box(Modifier.fillMaxWidth().height(14.dp).background(block, RoundedCornerShape(7.dp)))
+        Spacer(Modifier.height(Spacing.sm))
+        Box(Modifier.fillMaxWidth().height(72.dp).background(block, RoundedCornerShape(16.dp)))
+        Box(Modifier.fillMaxWidth().height(160.dp).background(block, RoundedCornerShape(16.dp)))
+        if (syncing) Text("Reading your bank SMS\u2026", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
     }
 }
 
@@ -329,6 +344,21 @@ private fun HomeContent(
                         }
                     }
                 }
+                if (state.dailySpend.any { it.amount.signum() > 0 }) {
+                    Spacer(Modifier.height(Spacing.md))
+                    KoshCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenInsights)) {
+                        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Spending this month", style = MaterialTheme.typography.titleSmall, color = Tinward.colors.textPrimary)
+                                Text("Details \u203A", style = MaterialTheme.typography.labelLarge, color = Tinward.colors.accentText)
+                            }
+                            dev.kosh.financetracker.ui.components.DailySpendChart(
+                                days = state.dailySpend, color = Tinward.colors.accent, currencyCode = state.available?.currency ?: dev.kosh.financetracker.ui.format.BaseCurrency.code,
+                                hidden = amountsHidden, chartHeight = 88.dp,
+                            )
+                        }
+                    }
+                }
                 if (state.needsReviewCount > 0) {
                     Spacer(Modifier.height(Spacing.md))
                     NeedsReviewRow(state.needsReviewCount, onClick = onOpenReview)
@@ -410,6 +440,8 @@ private fun HomeContent(
                 if (syncSummary != null) {
                     Text(syncSummary, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary)
                 }
+                // Keeps the last links clear of the floating + button.
+                Spacer(Modifier.height(88.dp))
             }
         }
     }

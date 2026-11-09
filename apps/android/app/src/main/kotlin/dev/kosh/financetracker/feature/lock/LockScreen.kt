@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -36,6 +38,21 @@ import kotlinx.coroutines.delay
 private const val N = VaultCore.PIN_LENGTH
 
 /** First-run PIN creation: enter a 6-digit PIN, then enter it again. Mandatory. */
+/** Centres the lock content vertically (slightly above middle), and still scrolls on short screens or large text. */
+@Composable
+private fun LockFrame(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().background(Tinward.colors.background).systemBarsPadding()) {
+        Column(
+            Modifier.fillMaxWidth().heightIn(min = maxHeight).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            content()
+            Spacer(Modifier.height(Spacing.xl))   // nudges the block a little above true centre
+        }
+    }
+}
+
 @Composable
 fun SetupLockScreen(viewModel: LockViewModel) {
     val ui by viewModel.ui.collectAsState()
@@ -54,12 +71,7 @@ fun SetupLockScreen(viewModel: LockViewModel) {
         }
     }
 
-    Column(
-        Modifier.fillMaxSize().background(Tinward.colors.background).systemBarsPadding()
-            .verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.height(Spacing.lg))
+    LockFrame {
         KoshWordmark()
         Spacer(Modifier.height(Spacing.lg))
         Text(
@@ -72,7 +84,7 @@ fun SetupLockScreen(viewModel: LockViewModel) {
             style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary, textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(Spacing.lg))
-        PinDots(entry.length, error = ui.error != null)
+        PinDots(entry.length, error = ui.error != null, busy = ui.busy)
         Spacer(Modifier.height(Spacing.sm))
         Text(
             ui.error ?: " ", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.negative, textAlign = TextAlign.Center,
@@ -120,20 +132,15 @@ fun UnlockScreen(viewModel: LockViewModel) {
     // A wrong or throttled attempt clears the dots so the next try starts fresh.
     LaunchedEffect(ui.error) { if (ui.error != null) entry = "" }
 
-    Column(
-        Modifier.fillMaxSize().background(Tinward.colors.background).systemBarsPadding()
-            .verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.height(Spacing.lg))
+    LockFrame {
         KoshWordmark()
         Spacer(Modifier.height(Spacing.lg))
         Text("Enter your PIN", style = MaterialTheme.typography.headlineMedium, color = Tinward.colors.textPrimary)
         Spacer(Modifier.height(Spacing.lg))
-        PinDots(entry.length, error = ui.error != null)
+        PinDots(entry.length, error = ui.error != null, busy = ui.busy)
         Spacer(Modifier.height(Spacing.sm))
         Text(
-            if (waitSeconds > 0) "Too many attempts. Try again in ${waitSeconds}s." else if (ui.busy) "Unlocking\u2026" else ui.error ?: " ",
+            if (waitSeconds > 0) "Too many attempts. Try again in ${waitSeconds}s." else if (ui.busy) "" else ui.error ?: " ",
             style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.negative, textAlign = TextAlign.Center,
             modifier = Modifier.height(40.dp),
         )

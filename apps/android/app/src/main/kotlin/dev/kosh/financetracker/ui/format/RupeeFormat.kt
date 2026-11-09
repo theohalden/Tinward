@@ -78,3 +78,23 @@ private fun groupIndianDigits(intDigits: String): String {
     groups.addLast(lastThree)
     return groups.joinToString(",")
 }
+
+/** Short amount for chart labels: ₹44k, ₹1.2L, ₹3.4Cr (INR) or 44K, 1.2M (others). Never used for exact figures. */
+fun compactMoney(amount: BigDecimal, currencyCode: String = BaseCurrency.code, hidden: Boolean = false): String {
+    val symbol = runCatching { Currency.getInstance(currencyCode).getSymbol(Locale.getDefault()) }.getOrDefault(currencyCode)
+    if (hidden) return "$symbol*"
+    val v = amount.abs().toDouble()
+    fun trim(d: Double) = if (d >= 10 || d % 1.0 == 0.0) d.toLong().toString() else String.format(Locale.US, "%.1f", d)
+    val body = if (currencyCode == "INR") when {
+        v >= 1e7 -> trim(v / 1e7) + "Cr"
+        v >= 1e5 -> trim(v / 1e5) + "L"
+        v >= 1e3 -> trim(v / 1e3) + "k"
+        else -> v.toLong().toString()
+    } else when {
+        v >= 1e9 -> trim(v / 1e9) + "B"
+        v >= 1e6 -> trim(v / 1e6) + "M"
+        v >= 1e3 -> trim(v / 1e3) + "K"
+        else -> v.toLong().toString()
+    }
+    return (if (amount.signum() < 0) "-" else "") + symbol + body
+}

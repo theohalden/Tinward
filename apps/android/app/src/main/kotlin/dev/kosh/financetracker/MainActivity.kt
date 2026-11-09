@@ -112,13 +112,23 @@ class MainActivity : FragmentActivity() {
             KoshTheme(darkTheme = dark) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     // The finance UI (and everything that opens the database) exists only while unlocked.
-                    when {
-                        onboarded == null -> Unit
-                        lockState == LockState.NO_PIN && onboarded == false -> OnboardingScreen(onFinish = shell::finishOnboarding)
-                        lockState == LockState.NO_PIN -> SetupLockScreen(lockVm)
-                        lockState == LockState.LOCKED -> UnlockScreen(lockVm)
-                        onboarded == false -> OnboardingScreen(onFinish = shell::finishOnboarding)
-                        else -> KoshApp()
+                    val screen = when {
+                        onboarded == null -> 0
+                        lockState == LockState.NO_PIN && onboarded == false -> 1
+                        lockState == LockState.NO_PIN -> 2
+                        lockState == LockState.LOCKED -> 3
+                        onboarded == false -> 1
+                        else -> 4
+                    }
+                    // A short cross-fade makes unlocking settle into Home instead of cutting to it.
+                    androidx.compose.animation.Crossfade(targetState = screen, animationSpec = androidx.compose.animation.core.tween(260), label = "gate") { which ->
+                        when (which) {
+                            1 -> OnboardingScreen(onFinish = shell::finishOnboarding)
+                            2 -> SetupLockScreen(lockVm)
+                            3 -> UnlockScreen(lockVm)
+                            4 -> KoshApp()
+                            else -> Unit
+                        }
                     }
                 }
             }
@@ -208,7 +218,7 @@ private fun KoshApp() {
                 KoshDestination.AccountForm.route,
                 arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
             ) { AccountFormScreen(onDone = { navController.popBackStack() }) }
-            composable(KoshDestination.Insights.route) { InsightsScreen(onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }, onBack = { navController.popBackStack() }) }
+            composable(KoshDestination.Insights.route) { InsightsScreen(onOpenPlus = { navController.navigate(KoshDestination.Plus.route) }, onOpenReview = { navController.navigate(KoshDestination.Review.route) }, onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Review.route) { ReviewScreen(onBack = { navController.popBackStack() }) }
             composable(KoshDestination.Add.route) { AddTransactionScreen(onDone = { navController.popBackStack() }) }
             composable(
