@@ -95,7 +95,7 @@ fun AddTransactionScreen(onDone: () -> Unit, viewModel: AddTransactionViewModel 
                 TinwardTextField(
                     state.amountText, viewModel::setAmount, label = "Amount",
                     prefix = runCatching { java.util.Currency.getInstance(state.currency).getSymbol(Locale.getDefault()) }.getOrDefault(state.currency),
-                    numeric = true, placeholder = "0.00",
+                    numeric = true, placeholder = "0.00", large = true, autoFocus = !state.editing,
                 )
                 TinwardTextField(state.label, viewModel::setLabel, label = "What was this for? (optional)", placeholder = "e.g. Groceries")
                 Column(

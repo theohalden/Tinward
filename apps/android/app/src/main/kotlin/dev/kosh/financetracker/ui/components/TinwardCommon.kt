@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -152,11 +153,16 @@ fun TinwardTextField(
     singleLine: Boolean = true,
     secret: Boolean = false,
     digitsOnly: Boolean = false,
+    large: Boolean = false,
+    autoFocus: Boolean = false,
 ) {
+    val focus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+    if (autoFocus) androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().then(if (autoFocus) Modifier.focusRequester(focus) else Modifier),
+        textStyle = if (large) MaterialTheme.typography.headlineMedium else androidx.compose.material3.LocalTextStyle.current,
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it, color = Tinward.colors.textTertiary) } },
         prefix = prefix?.let { { Text(it) } },

@@ -306,6 +306,8 @@ private fun HomeContent(
         item {
             Column(
                 modifier = Modifier
+                    // A soft warm glow behind the header and hero that fades out before the cards.
+                    .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Tinward.colors.accent.copy(alpha = 0.14f), androidx.compose.ui.graphics.Color.Transparent), startY = 0f, endY = 900f))
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(horizontal = Spacing.md),
             ) {
