@@ -134,4 +134,9 @@ class OverviewViewModel @Inject constructor(
     fun sync() {
         viewModelScope.launch { syncManager.sync() }
     }
+
+    /** Called whenever the app returns to the foreground. */
+    fun syncIfStale() {
+        viewModelScope.launch { syncManager.syncIfStale() }
+    }
 }

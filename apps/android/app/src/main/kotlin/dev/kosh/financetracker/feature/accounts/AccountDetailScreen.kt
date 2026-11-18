@@ -1,5 +1,6 @@
 package dev.kosh.financetracker.feature.accounts
 
+import dev.kosh.financetracker.core.model.displayMerchant
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -162,7 +163,7 @@ private fun TxRow(t: Transaction, onClick: () -> Unit) {
         dev.kosh.financetracker.ui.components.CategoryIconTile(t.category, t.merchant ?: "?", size = 36.dp)
         androidx.compose.foundation.layout.Spacer(Modifier.padding(start = Spacing.ms))
         Column(Modifier.weight(1f)) {
-            Text(t.merchant ?: "Unknown", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(t.displayMerchant(), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textTertiary, maxLines = 1)
         }
         Text(

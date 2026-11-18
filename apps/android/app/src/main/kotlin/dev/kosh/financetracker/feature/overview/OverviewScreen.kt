@@ -1,5 +1,6 @@
 package dev.kosh.financetracker.feature.overview
 
+import dev.kosh.financetracker.core.model.displayMerchant
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -126,6 +127,20 @@ fun OverviewScreen(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) {
         hasPermission = hasAllSmsPermissions()
+        if (hasPermission) viewModel.sync()
+    }
+
+    // Scan whenever the app comes back to the foreground so new messages appear without a manual tap.
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                hasPermission = hasAllSmsPermissions()
+                if (hasPermission) viewModel.syncIfStale()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Box(
@@ -735,7 +750,7 @@ private fun RecentActivityRow(transaction: Transaction, amountsHidden: Boolean, 
     val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT ||
         transaction.type == TransactionType.CASH_WITHDRAWAL || transaction.type == TransactionType.ADJUSTMENT
     val isDebit = transaction.direction == TransactionDirection.DEBIT
-    val merchant = transaction.merchant ?: "Unknown"
+    val merchant = transaction.displayMerchant()
     val subtitle = when (transaction.type) {
         TransactionType.CREDIT_CARD_PAYMENT -> "Card repayment \u00B7 not spending"
         TransactionType.CREDIT_CARD_PURCHASE -> "Card purchase"

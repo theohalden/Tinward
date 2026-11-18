@@ -94,10 +94,10 @@ class LockViewModel @Inject constructor(
             runCatching { planning.get().importFixedExpensesOnce() }
             reminders.get().start(viewModelScope)
             val smsOk = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
-            if (vault.smsMissedWhileLocked && smsOk) {
-                vault.smsMissedWhileLocked = false
-                runCatching { sms.get().sync() }
-            }
+            // Always catch up on unlock. Relying on the receiver's "missed while locked" flag meant that
+            // if the OS never delivered the broadcast, nothing ever scanned the inbox again.
+            vault.smsMissedWhileLocked = false
+            if (smsOk) sms.get().sync()
         }
     }
 }

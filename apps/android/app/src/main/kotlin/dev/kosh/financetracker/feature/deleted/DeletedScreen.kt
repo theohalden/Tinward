@@ -1,5 +1,6 @@
 package dev.kosh.financetracker.feature.deleted
 
+import dev.kosh.financetracker.core.model.displayMerchant
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -74,7 +75,7 @@ fun DeletedScreen(onBack: () -> Unit, viewModel: DeletedViewModel = hiltViewMode
                 KoshCard {
                     Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(t.merchant ?: "Unknown", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
+                            Text(t.displayMerchant(), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
                             Text(
                                 formatSignedMoney(t.amount, t.direction == TransactionDirection.DEBIT, currencyCode = t.currency) + " · " +
                                     t.timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy")),

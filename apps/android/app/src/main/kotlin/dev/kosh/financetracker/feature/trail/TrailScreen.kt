@@ -1,5 +1,6 @@
 package dev.kosh.financetracker.feature.trail
 
+import dev.kosh.financetracker.core.model.displayMerchant
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -181,14 +182,14 @@ private fun TrailRow(transaction: Transaction, onClick: () -> Unit) {
     val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT ||
         transaction.type == TransactionType.CASH_WITHDRAWAL || transaction.type == TransactionType.ADJUSTMENT
     val isDebit = transaction.direction == TransactionDirection.DEBIT
-    val merchant = transaction.merchant ?: "Unknown"
+    val merchant = transaction.displayMerchant()
     val subtitle = when {
         transaction.reconciliationNote != null ->
             if (transaction.isUnmatchedOverlap) "Unmatched \u00B7 not counted" else "Needs a decision"
         transaction.type == TransactionType.CREDIT_CARD_PAYMENT -> "Card payment"
         transaction.type == TransactionType.ADJUSTMENT -> "Balance correction"
         transaction.type == TransactionType.CASH_WITHDRAWAL -> "Cash withdrawal"
-        isTransfer -> "Transfer"
+        isTransfer -> listOfNotNull("Transfer", accountLabel(transaction)).joinToString(" \u00B7 ")
         else -> listOfNotNull(
             transaction.category?.let { labelFor(it) }?.takeIf { it != "Uncategorized" },
             accountLabel(transaction),
