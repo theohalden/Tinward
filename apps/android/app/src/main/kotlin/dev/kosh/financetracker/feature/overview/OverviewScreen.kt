@@ -126,6 +126,20 @@ fun OverviewScreen(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) {
         hasPermission = hasAllSmsPermissions()
+        if (hasPermission) viewModel.sync()
+    }
+
+    // Scan whenever the app comes back to the foreground so new messages appear without a manual tap.
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                hasPermission = hasAllSmsPermissions()
+                if (hasPermission) viewModel.syncIfStale()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Box(

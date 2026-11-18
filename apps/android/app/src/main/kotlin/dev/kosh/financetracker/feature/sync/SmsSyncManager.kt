@@ -47,6 +47,16 @@ class SmsSyncManager @Inject constructor(
     private val _state = MutableStateFlow(SyncState())
     val state: StateFlow<SyncState> = _state.asStateFlow()
     private val mutex = Mutex()
+    @Volatile private var lastSuccessfulSyncMillis = 0L
+
+    /**
+     * Catch-up scan used when the app unlocks or returns to the foreground. The scan de-duplicates,
+     * so running it often is safe; the interval only avoids rescanning the whole inbox on every flicker.
+     */
+    suspend fun syncIfStale(minIntervalMillis: Long = 60_000L) {
+        if (System.currentTimeMillis() - lastSuccessfulSyncMillis < minIntervalMillis) return
+        sync()
+    }
 
     suspend fun sync() = mutex.withLock {
         _state.value = _state.value.copy(isSyncing = true, error = null)
@@ -87,6 +97,7 @@ class SmsSyncManager @Inject constructor(
             )
         }
         _state.value = result
+        lastSuccessfulSyncMillis = System.currentTimeMillis()
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
