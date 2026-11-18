@@ -88,59 +88,93 @@ internal fun BillsTab(state: PlanUiState, vm: PlanViewModel) {
         }
     }
 
-    SectionLabel("Coming up")
+    // The add action lives in the header, not below a long list nobody scrolls to.
+    val dueBills = state.pending.filter { it.item.kind == RecurringKind.BILL }
+    val oneCurrency = dueBills.map { it.item.currency }.distinct().singleOrNull()
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            SectionLabel("Coming up")
+            if (dueBills.isNotEmpty() && oneCurrency != null) Text(
+                "${dueBills.size} payment${if (dueBills.size == 1) "" else "s"} \u00B7 ${formatMoney(dueBills.fold(java.math.BigDecimal.ZERO) { sum, o -> sum + o.item.amount }, currencyCode = oneCurrency)} in the next 45 days",
+                style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary,
+            )
+        }
+        androidx.compose.material3.Button(
+            onClick = { adding = true },
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Tinward.colors.accent, contentColor = Tinward.colors.onAccent),
+        ) { Text("+ Add", style = MaterialTheme.typography.labelLarge) }
+    }
+
     if (state.pending.isEmpty()) {
-        Text("Nothing due in the next 45 days. Add a bill or income schedule below.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
-    } else KoshCard {
-        Column {
-            state.pending.forEachIndexed { i, o ->
-                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-                androidx.compose.foundation.layout.FlowRow(
-                    Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = Spacing.md, top = Spacing.xs, bottom = Spacing.xs),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column {
-                        Text(o.item.name, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
-                        Text(
-                            whenText(o, today) + if (o.item.kind == RecurringKind.INCOME) " \u00B7 income" else "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (o.status == OccurrenceStatus.OVERDUE) Tinward.colors.negative else Tinward.colors.textSecondary,
-                        )
+        Text("Nothing due in the next 45 days. Tap Add to set up a bill or an income schedule.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textSecondary)
+    } else {
+        // One card per day, so the date is said once instead of on every row.
+        state.pending.groupBy { it.date }.forEach { (date, occurrences) ->
+            val head = occurrences.first()
+            Text(
+                whenText(head, today),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (head.status == OccurrenceStatus.OVERDUE) Tinward.colors.negative else Tinward.colors.textSecondary,
+                modifier = Modifier.padding(top = Spacing.xs),
+            )
+            KoshCard {
+                Column {
+                    occurrences.forEachIndexed { i, o ->
+                        // Only the next one per schedule can be confirmed; later ones follow automatically.
+                        val confirmable = state.pending.first { it.item.id == o.item.id } == o
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(o.item.name, style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                Text(
+                                    if (o.item.kind == RecurringKind.INCOME) "Income" else o.item.frequency.label,
+                                    style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary,
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(formatMoney(o.item.amount, currencyCode = o.item.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
+                                if (confirmable) Text(
+                                    if (o.item.kind == RecurringKind.BILL) "Mark paid" else "Mark received",
+                                    style = MaterialTheme.typography.labelLarge, color = Tinward.colors.accentText,
+                                    modifier = Modifier.clickable { settling = o }.padding(top = Spacing.xs, bottom = Spacing.xs, start = Spacing.sm),
+                                )
+                            }
+                        }
+                        if (i != occurrences.lastIndex) HorizontalDivider(color = Tinward.colors.divider)
                     }
-                    Text(formatMoney(o.item.amount, currencyCode = o.item.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary)
-                    // Only the next one per schedule can be confirmed; later ones follow automatically.
-                    if (state.pending.first { it.item.id == o.item.id } == o) {
-                        TextButton(onClick = { settling = o }) { Text(if (o.item.kind == RecurringKind.BILL) "Mark paid" else "Mark received", color = Tinward.colors.accentText) }
-                    } else androidx.compose.foundation.layout.Spacer(Modifier.padding(end = Spacing.md))
                 }
-                if (i != state.pending.lastIndex) HorizontalDivider(color = Tinward.colors.divider)
             }
         }
     }
 
-    SectionLabel("All bills and income (tap to edit)")
-    if (state.recurring.isEmpty()) Text("Nothing added yet.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textTertiary)
-    else KoshCard {
-        Column {
-            state.recurring.forEachIndexed { i, item ->
-                Row(
-                    Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { editing = item }.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(item.name + if (!item.active) " (paused)" else "", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 1)
-                        Text(
-                            "${item.frequency.label} \u00B7 ${if (item.kind == RecurringKind.BILL) "bill" else "income"} \u00B7 next ${Recurrence.nextUnsettled(item).format(DAY_FORMAT)}",
-                            style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary,
-                        )
+    SectionLabel("All bills and income")
+    if (state.recurring.isEmpty()) Text("Nothing added yet. Tap Add to start.", style = MaterialTheme.typography.bodyMedium, color = Tinward.colors.textTertiary)
+    else {
+        Text("Tap one to edit or pause it.", style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary)
+        KoshCard {
+            Column {
+                state.recurring.forEachIndexed { i, item ->
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { editing = item }.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(item.name + if (!item.active) " (paused)" else "", style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textPrimary, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            Text(
+                                "${item.frequency.label} \u00B7 ${if (item.kind == RecurringKind.BILL) "bill" else "income"} \u00B7 next ${Recurrence.nextUnsettled(item).format(DAY_FORMAT)}",
+                                style = MaterialTheme.typography.bodySmall, color = Tinward.colors.textSecondary,
+                            )
+                        }
+                        Text(formatMoney(item.amount, currencyCode = item.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textSecondary, maxLines = 1)
                     }
-                    Text(formatMoney(item.amount, currencyCode = item.currency), style = MaterialTheme.typography.bodyLarge, color = Tinward.colors.textSecondary)
+                    if (i != state.recurring.lastIndex) HorizontalDivider(color = Tinward.colors.divider)
                 }
-                if (i != state.recurring.lastIndex) HorizontalDivider(color = Tinward.colors.divider)
             }
         }
     }
-    PrimaryButton("Add a bill or income", { adding = true }, Modifier.fillMaxWidth())
     if ((context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
         TextButton(onClick = { ReminderScheduler.sendTest(context) }) { Text("Send a test reminder (debug builds only)", color = Tinward.colors.textSecondary) }
     }

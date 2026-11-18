@@ -1,5 +1,6 @@
 package dev.kosh.financetracker.feature.detail
 
+import dev.kosh.financetracker.core.model.displayMerchant
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -184,7 +185,7 @@ private fun Hero(t: Transaction) {
     Column(Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
         CategoryIconTile(t.category, t.merchant ?: "?", size = 56.dp)
         Spacer(Modifier.height(Spacing.sm))
-        Text(t.merchant ?: "Unknown", style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary, textAlign = TextAlign.Center)
+        Text(t.displayMerchant(), style = MaterialTheme.typography.titleMedium, color = Tinward.colors.textPrimary, textAlign = TextAlign.Center)
         Text(
             formatSignedMoney(t.amount, if (neutral) null else isDebit, currencyCode = t.currency),
             style = MaterialTheme.typography.displaySmall,

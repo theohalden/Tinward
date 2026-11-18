@@ -1,5 +1,6 @@
 package dev.kosh.financetracker.feature.overview
 
+import dev.kosh.financetracker.core.model.displayMerchant
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -749,7 +750,7 @@ private fun RecentActivityRow(transaction: Transaction, amountsHidden: Boolean, 
     val isTransfer = transaction.type == TransactionType.TRANSFER || transaction.type == TransactionType.CREDIT_CARD_PAYMENT ||
         transaction.type == TransactionType.CASH_WITHDRAWAL || transaction.type == TransactionType.ADJUSTMENT
     val isDebit = transaction.direction == TransactionDirection.DEBIT
-    val merchant = transaction.merchant ?: "Unknown"
+    val merchant = transaction.displayMerchant()
     val subtitle = when (transaction.type) {
         TransactionType.CREDIT_CARD_PAYMENT -> "Card repayment \u00B7 not spending"
         TransactionType.CREDIT_CARD_PURCHASE -> "Card purchase"
