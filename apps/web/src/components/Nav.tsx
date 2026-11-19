@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Logo } from "./Logo";
-const LINKS = [{ href: "#features", label: "Features" }, { href: "#how", label: "How it works" }, { href: "#privacy", label: "Privacy" }, { href: "#pricing", label: "Pricing" }];
+const LINKS = [{ href: "#features", label: "Features" }, { href: "#how", label: "How it works" }, { href: "#compare", label: "Compare" }, { href: "#privacy", label: "Privacy" }, { href: "#pricing", label: "Pricing" }];
 export function Nav() {
   const [open, setOpen] = useState(false);
   const [solid, setSolid] = useState(false);

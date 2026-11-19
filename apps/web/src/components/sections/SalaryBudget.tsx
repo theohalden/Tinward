@@ -17,14 +17,14 @@ export function SalaryBudget() {
       <div className="shell section">
         <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-24">
           <div>
-            <div className="flex items-center gap-5"><Reveal><span className="eyebrow">A little more intention</span></Reveal><PlannedChip /></div>
-            <Reveal delay={80}><h2 id="salary-h" className="h2 mt-6">Make room for what matters.</h2></Reveal>
+            <div className="flex items-center gap-5"><Reveal><span className="eyebrow">Budgets</span></Reveal><PlannedChip /></div>
+            <Reveal delay={80}><h2 id="salary-h" className="h2 mt-6">Plan your month before it starts.</h2></Reveal>
             <Reveal delay={160}>
-              <p className="lead mt-8">A budget shouldn’t feel like a punishment. It’s a way to understand what you have available, what needs taking care of, and what you’d like to save for. Tinward helps you build a more thoughtful relationship with everyday spending, one decision at a time.</p>
+              <p className="lead mt-8">Give your income a job. Set aside rent, bills and savings first, then see what’s left to spend freely.</p>
             </Reveal>
             <Reveal delay={220}>
               <ul className="mt-10 grid gap-3 border-t border-line pt-6 text-[0.98rem] text-ink-2">
-                {["Plan your spending. Give everyday categories a little more structure.", "Keep commitments in sight. Make recurring expenses part of the picture.", "See what’s left. Understand how your spending compares with your plan."].map((t) => (
+                {["Set a budget for each category.", "Keep recurring bills in sight before they’re due.", "See what’s left as the month goes on."].map((t) => (
                   <li key={t} className="flex gap-3"><span className="mt-2.5 h-px w-4 flex-none bg-ink" aria-hidden="true" />{t}</li>
                 ))}
               </ul>

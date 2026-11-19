@@ -57,7 +57,7 @@ export function EarlyAccess({ enabled = true }: { enabled?: boolean }) {
       <div className="shell section">
         <span className="eyebrow !text-paper/60">Early access</span>
         <h2 id="ea-h" className="h2 mt-6">A clearer picture is taking shape.</h2>
-        <p className="mt-6 max-w-xl text-paper/75">Email signup is temporarily unavailable on this preview. We aren’t collecting email addresses or sending invitations here yet. You can download the early Android app today.</p>
+        <p className="mt-6 max-w-xl text-paper/75">Email signup is temporarily unavailable on this preview, and we aren’t collecting email addresses here. You can download the Android app today.</p>
         <a href="#download" className="btn btn-primary mt-8">Get the Android APK <span aria-hidden="true">↓</span></a>
       </div>
     </section>
@@ -68,11 +68,11 @@ export function EarlyAccess({ enabled = true }: { enabled?: boolean }) {
       <div className="shell section">
         <div className="grid items-center gap-12 lg:grid-cols-[1fr_1fr] lg:gap-20">
           <div>
-            <span className="eyebrow !text-paper/60">Take a clearer view</span>
-            <h2 id="ea-h" className="h2 mt-6">Your money, a little more understood.</h2>
-            <p className="mt-8 max-w-md text-[1.12rem] leading-relaxed text-paper/75">There’s something reassuring about knowing where you stand. Start building that understanding with Tinward. Made for Android. Designed for everyday life. Add your email and we’ll send your invitation when the Android beta is ready.</p>
+            <span className="eyebrow !text-paper/60">Stay in the loop</span>
+            <h2 id="ea-h" className="h2 mt-6">Hear about Plus and what’s next.</h2>
+            <p className="mt-8 max-w-md text-[1.12rem] leading-relaxed text-paper/75">The Android app is free to download today. Leave your email and we’ll tell you when budgets, net worth, Tinward Plus or more banks are ready.</p>
             <ul className="mt-8 grid gap-3 text-[0.98rem] text-paper/80">
-              {["A confirmation email, then your invitation. Product news only if you opt in.", "We never ask for bank details, a phone number or your messages here", "Unsubscribe or delete your details whenever you like"].map((t) => (
+              {["One confirmation email, then a message only when there’s news.", "We never ask for bank details, a phone number or your messages here.", "Unsubscribe or delete your details at any time."].map((t) => (
                 <li key={t} className="flex gap-3"><svg width="18" height="18" viewBox="0 0 18 18" className="mt-1 flex-none" aria-hidden="true"><path d="M3 9.5 7 13.5l8-9" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>{t}</li>
               ))}
             </ul>
@@ -87,7 +87,7 @@ export function EarlyAccess({ enabled = true }: { enabled?: boolean }) {
                 {state.kind === "duplicate" ? (
                   <>
                     <h3 className="mt-6 text-3xl">You&apos;re already on the list.</h3>
-                    <p className="mt-3 text-ink-2">That address is confirmed, so there&apos;s nothing more to do. We&apos;ll email you when the beta opens.</p>
+                    <p className="mt-3 text-ink-2">That address is confirmed, so there&apos;s nothing more to do. We&apos;ll email you when there&apos;s news.</p>
                   </>
                 ) : (
                   <>
@@ -100,7 +100,7 @@ export function EarlyAccess({ enabled = true }: { enabled?: boolean }) {
               </div>
             ) : (
               <form onSubmit={onSubmit} noValidate aria-describedby={`${id}-fine`}>
-                <h3 className="text-[2rem]">Join the Android beta</h3>
+                <h3 className="text-[2rem]">Join the early-access list</h3>
                 <div className="mt-6">
                   <label htmlFor={`${id}-email`} className="block text-sm font-extrabold">Email address <span className="font-medium text-ink-2">(required)</span></label>
                   <input
@@ -133,7 +133,7 @@ export function EarlyAccess({ enabled = true }: { enabled?: boolean }) {
                 </label>
 
                 <button type="submit" disabled={loading} className="btn btn-primary mt-7 w-full">
-                  {loading ? (<><svg className="animate-spin" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeOpacity=".3" strokeWidth="3" /><path d="M10 2a8 8 0 0 1 8 8" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>Joining…</>) : (<>Join the Android beta <span aria-hidden="true">↗</span></>)}
+                  {loading ? (<><svg className="animate-spin" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeOpacity=".3" strokeWidth="3" /><path d="M10 2a8 8 0 0 1 8 8" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>Joining…</>) : (<>Join the list <span aria-hidden="true">↗</span></>)}
                 </button>
 
                 <div aria-live="assertive" className="min-h-0">

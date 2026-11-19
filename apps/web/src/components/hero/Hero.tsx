@@ -2,26 +2,25 @@ import "./hero.css";
 import { Tilt } from "../Tilt";
 import { AppPhone } from "../app/AppPhone";
 import { HomeScreen } from "../app/Screens";
-import { Money } from "../Money";
-import { month, netWorth, sum } from "@/content/sample";
+import { HeroScroll } from "./HeroScroll";
+
 export function Hero() {
   return (
-    <section className="hero shell" id="top" aria-labelledby="hero-heading">
-      <div className="hero-copy">
-        <p className="hero-kicker"><span className="entry-line" aria-hidden="true"/>A more thoughtful way with money</p>
-        <h1 id="hero-heading" className="hero-heading">All your money.<br/><em>In perspective.</em></h1>
-        <p className="hero-sub">The little things you spend. The money you set aside.<br className="hero-break"/> The plans you’re working towards.</p>
-        <p className="hero-description">Tinward brings your financial life into focus, so you can understand where you stand and make more of what you have.</p>
-        <div className="hero-actions"><a href="#download" className="btn btn-primary">Get Tinward for Android <span className="cta-arrow" aria-hidden="true">↗</span></a><a href="#product" className="hero-link">Discover Tinward <span aria-hidden="true">↓</span></a></div>
-        <p className="hero-note"><span aria-hidden="true"/>Personal finance, made simpler.</p>
-      </div>
-      <div className="hero-product">
-        <span className="hero-orbit orbit-a" aria-hidden="true"/><span className="hero-orbit orbit-b" aria-hidden="true"/>
-        <div className="hero-product-caption"><span>01 / THE CLEARER PICTURE</span><span>PERSONAL FINANCE, RECONSIDERED</span></div>
-        <div className="hero-phone"><Tilt><AppPhone label="Tinward Home concept with synthetic financial figures"><HomeScreen/></AppPhone></Tilt></div>
-        <div className="hero-float float-income" aria-hidden="true"><span className="float-dot"/>Income, accounted for.<strong><Money value={month.income} /><span> this month</span></strong></div>
-        <div className="hero-float float-worth" aria-hidden="true"><span>THE BIGGER PICTURE</span><strong><Money value={sum(netWorth.assets) - sum(netWorth.liabilities)} /></strong><small>What you own, less what you owe.</small></div>
-        <p className="hero-preview-note">A look at the vision. Explore the app below.</p>
+    <section className="hero-wrap on-ink" id="top" aria-labelledby="hero-heading">
+      <HeroScroll />
+      <div className="hero-glow" aria-hidden="true" />
+      <div className="hero-rings" aria-hidden="true"><i /><i /><i /></div>
+      <div className="shell hero">
+        <p className="hero-kicker">Tinward for Android</p>
+        <h1 id="hero-heading" className="hero-heading">Know where your money went.<br /><em>Privately.</em></h1>
+        <p className="hero-sub">Your bank messages, sorted on your phone.</p>
+        <div className="hero-actions">
+          <a href="#download" className="btn btn-light">Download for Android <span aria-hidden="true">↓</span></a>
+        </div>
+        <p className="hero-note">Free · No account · Nothing leaves your phone</p>
+        <div className="hero-stage">
+          <div className="hero-phone"><Tilt><AppPhone label="Tinward Home concept with synthetic financial figures"><HomeScreen /></AppPhone></Tilt></div>
+        </div>
       </div>
     </section>
   );

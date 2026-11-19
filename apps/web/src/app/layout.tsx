@@ -9,10 +9,10 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.TINWARD_STATIC_
 
 export const metadata: Metadata = {
   ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
-  title: { default: "Tinward — Your money. In perspective.", template: "%s · Tinward" },
-  description: "A personal finance app in development: spending, income, budgets and a wider view of what you own and owe. Join Tinward early access.",
-  openGraph: { type: "website", siteName: "Tinward", title: "Tinward — Your money. In perspective.", description: "Spending, income and your wider financial picture. Android app in development; early access is free.", locale: "en_US" },
-  twitter: { card: "summary_large_image", title: "Tinward — Your money. In perspective.", description: "Your spending, income and wider financial picture. Android app in development." },
+  title: { default: "Tinward — Know where your money went, privately", template: "%s · Tinward" },
+  description: "Tinward is a free, private personal finance app for Android. It turns your bank SMS alerts and statements into a clear view of your spending, on your phone, with no bank login.",
+  openGraph: { type: "website", siteName: "Tinward", title: "Tinward — Know where your money went, privately", description: "A free Android app that sorts your bank SMS and statements into a clear view of your spending. No bank login, no account, nothing leaves your phone.", locale: "en_US" },
+  twitter: { card: "summary_large_image", title: "Tinward — Know where your money went, privately", description: "A free, private Android app that shows where your money goes. No bank login, no account." },
   ...(siteUrl ? { alternates: { canonical: "/" } } : {}),
 };
 

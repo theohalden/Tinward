@@ -1,10 +1,9 @@
 import { Reveal } from "../Reveal";
 
 const STEPS = [
-  { n: "01", title: "Start with what you know.", body: "Choose your currency and add the financial details you want to track." },
-  { n: "02", title: "Make it a habit.", body: "Record your everyday activity and organize it in a way that makes sense to you." },
-  { n: "03", title: "See the patterns.", body: "Review your spending, keep your plans in view, and understand your financial position." },
-  { n: "04", title: "Keep moving forward.", body: "Return whenever you need a clearer perspective on your money." },
+  { n: "01", title: "Download and install.", body: "Get the APK from this page and open it. Android may ask you to allow installs from your browser, once." },
+  { n: "02", title: "Choose how to import.", body: "Allow SMS access so Tinward can read your bank alerts, or import a bank statement instead. Either way, everything stays on your phone." },
+  { n: "03", title: "Review and explore.", body: "Check the few transactions Tinward couldn’t categorise, then see where your money goes each month." },
 ];
 
 export function HowItWorks() {
@@ -12,8 +11,8 @@ export function HowItWorks() {
     <section id="how" className="shell section border-t border-line" aria-labelledby="how-h">
       <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
         <div>
-          <Reveal><span className="eyebrow">Beautifully straightforward</span></Reveal>
-          <Reveal delay={80}><h2 id="how-h" className="h2 mt-6">Small steps. A clearer picture.</h2></Reveal>
+          <Reveal><span className="eyebrow">How it works</span></Reveal>
+          <Reveal delay={80}><h2 id="how-h" className="h2 mt-6">Up and running in three steps.</h2></Reveal>
         </div>
         <ol className="divide-y divide-line border-y border-line">
           {STEPS.map((s, i) => (

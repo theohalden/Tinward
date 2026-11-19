@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { Tilt } from "../Tilt";
 import { AppPhone, type Tab } from "../app/AppPhone";
 import { SCREENS } from "../app/Screens";
-const STEPS: { tab: Tab; kicker: string; h: string; p: string; note: string }[] = [
-  {tab:"home",kicker:"Know what’s happening",h:"Your finances aren’t separate stories.",p:"They’re all part of the same picture. Tinward gives everyday spending, financial plans and the things you own a place to come together. Understand your income, spending and activity without the noise.",note:"Transaction summaries are in the Android app. Available-to-spend planning is in development."},
-  {tab:"activity",kicker:"Know what’s happening",h:"Every movement has a place.",p:"Search transactions, see where money moved and correct its purpose, so transfers between your own accounts don’t look like new spending.",note:"Current tracking supports selected message and statement formats. Uncertain records still need review."},
-  {tab:"plan",kicker:"Know what’s ahead",h:"Give tomorrow a little space.",p:"Stay mindful of your budgets, commitments and plans. See what is committed, what is flexible and what is left for you.",note:"Budgets and goals are in development."},
-  {tab:"wealth",kicker:"Know where you stand",h:"See how it all fits together.",p:"See how your assets, savings and obligations fit together, using values you enter and update yourself.",note:"Manual investments and net worth are in development. No broker connection or live prices."},
+const STEPS: { tab: Tab; label: string; kicker: string; h: string; p: string; note: string }[] = [
+  {tab:"home",label:"Overview",kicker:"Overview",h:"See the month at a glance.",p:"Income, spending, recent transactions and account activity, added up from your messages and statements.",note:"Available now."},
+  {tab:"activity",label:"Activity",kicker:"Activity",h:"Every transaction, searchable.",p:"Search and filter your full history. Open any transaction to see the original message and fix its category.",note:"Available now. Anything Tinward is unsure about goes to a review queue."},
+  {tab:"plan",label:"Plan",kicker:"Plan",h:"Plan the month before it happens.",p:"Set a budget for each category, keep upcoming bills in sight and see what’s left to spend.",note:"Coming soon."},
+  {tab:"wealth",label:"Wealth",kicker:"Wealth",h:"Know your net worth.",p:"Add savings, investments and loans yourself and see what you own, less what you owe.",note:"Coming soon. You enter the values; there are no broker connections or live prices."},
 ];
 export function Showcase() {
   const ref = useRef<HTMLElement>(null);
@@ -70,14 +70,14 @@ export function Showcase() {
     <section id="product" ref={ref} className="sc-track" data-pinned={pinned} aria-labelledby="sc-h">
       <div className="sc-pin"><div className="shell sc-grid">
         <div className="sc-text">
-          <p className="eyebrow">Introducing Tinward</p><h2 id="sc-h" className="sc-heading">One app.<br/><em>A wider view.</em></h2>
-          <div className="sc-tabs" data-playing={playing} role="tablist" aria-label="Product screens">{STEPS.map((s,i) => <button key={s.tab} ref={el => {tabs.current[i]=el;}} role="tab" type="button" id={`tab-${s.tab}`} aria-selected={step===i} tabIndex={step===i?0:-1} aria-controls={`screen-${s.tab}`} onClick={() => choose(i)} onKeyDown={e => {const n=e.key==="ArrowRight"?(step+1)%4:e.key==="ArrowLeft"?(step+3)%4:e.key==="Home"?0:e.key==="End"?3:null;if(n!==null){e.preventDefault();choose(n);tabs.current[n]?.focus();}}}>{s.tab[0].toUpperCase()+s.tab.slice(1)}</button>)}</div>
+          <p className="eyebrow">Inside the app</p><h2 id="sc-h" className="sc-heading">Four screens.<br/><em>One clear picture.</em></h2>
+          <div className="sc-tabs" data-playing={playing} role="tablist" aria-label="Product screens">{STEPS.map((s,i) => <button key={s.tab} ref={el => {tabs.current[i]=el;}} role="tab" type="button" id={`tab-${s.tab}`} aria-selected={step===i} tabIndex={step===i?0:-1} aria-controls={`screen-${s.tab}`} onClick={() => choose(i)} onKeyDown={e => {const n=e.key==="ArrowRight"?(step+1)%4:e.key==="ArrowLeft"?(step+3)%4:e.key==="Home"?0:e.key==="End"?3:null;if(n!==null){e.preventDefault();choose(n);tabs.current[n]?.focus();}}}>{s.label}</button>)}</div>
           <div className="sc-story" key={step} aria-live={playing?"off":"polite"}><p className="sc-kicker">0{step+1} <span>{STEPS[step].kicker}</span></p><h3>{STEPS[step].h}</h3><p className="sc-p">{STEPS[step].p}</p><p className="sc-note">{STEPS[step].note}</p></div>
           <div className="sc-controls"><button type="button" aria-label="Previous product screen" onClick={() => choose(step-1)}>←</button><span>{String(step+1).padStart(2,"0")} / 04</span><button type="button" aria-label="Next product screen" onClick={() => choose(step+1)}>→</button>{!reduced && <button type="button" className="sc-play" aria-pressed={playing} onClick={() => setPlaying(!playing)}>{playing?"Pause tour":"Play tour"}</button>}</div>
-          <p className="sc-hint" aria-hidden="true"><i/>Scroll to move through the app</p>
-          <p className="sc-disclosure">Illustrative figures shown in your local currency, not customer data. These concepts include planned functionality; the Android app may look different.</p>
+          <p className="sc-hint" aria-hidden="true"><i/>Scroll to see each screen</p>
+          <p className="sc-disclosure">Screens are illustrative. Amounts are sample data in your local currency, and Plan and Wealth show features that are coming soon.</p>
         </div>
-        <div className="sc-stage"><span className="sc-stage-label">TINWARD / {STEPS[step].tab.toUpperCase()}</span><div className="sc-phone"><Tilt><AppPhone label={`Tinward ${STEPS[step].tab} concept with synthetic financial figures`}><div className="sc-screens">{STEPS.map((s,i) => {const Screen=SCREENS[s.tab];return <div key={s.tab} id={`screen-${s.tab}`} role="tabpanel" aria-labelledby={`tab-${s.tab}`} className="sc-screen" data-on={step===i} inert={step!==i} aria-hidden={step!==i}><Screen/></div>;})}</div></AppPhone></Tilt></div><span className="sc-stage-foot">A little more perspective.</span></div>
+        <div className="sc-stage"><span className="sc-stage-label">TINWARD / {STEPS[step].tab.toUpperCase()}</span><div className="sc-phone"><Tilt><AppPhone label={`Tinward ${STEPS[step].tab} concept with synthetic financial figures`}><div className="sc-screens">{STEPS.map((s,i) => {const Screen=SCREENS[s.tab];return <div key={s.tab} id={`screen-${s.tab}`} role="tabpanel" aria-labelledby={`tab-${s.tab}`} className="sc-screen" data-on={step===i} inert={step!==i} aria-hidden={step!==i}><Screen/></div>;})}</div></AppPhone></Tilt></div><span className="sc-stage-foot">Sample data, not a real account.</span></div>
       </div></div>
     </section>
   );
