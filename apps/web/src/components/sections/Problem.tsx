@@ -1,11 +1,11 @@
 import { Reveal } from "../Reveal";
 
 const DIARY: { d: string; t: string }[] = [
-  { d: "In", t: "It comes in." },
-  { d: "Out", t: "It goes out." },
-  { d: "Aside", t: "Some gets saved." },
-  { d: "Away", t: "Some disappears into the everyday." },
-  { d: "Lost", t: "And somewhere between your accounts, recurring bills, investments and expenses, the bigger picture gets lost." },
+  { d: "Scattered", t: "Every payment arrives as its own SMS alert." },
+  { d: "Unsorted", t: "Bank statements list transactions, not categories." },
+  { d: "Intrusive", t: "Many finance apps want your bank login, or keep your data on their servers." },
+  { d: "Manual", t: "Spreadsheets work, until you stop updating them." },
+  { d: "Unclear", t: "So at the end of the month, you still can’t say where the money went." },
 ];
 
 export function Problem() {
@@ -14,16 +14,16 @@ export function Problem() {
       <div className="shell section">
         <div className="grid gap-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-24">
           <div className="lg:sticky lg:top-28 lg:self-start">
-            <Reveal><span className="eyebrow !text-paper/60">Life is complicated enough</span></Reveal>
+            <Reveal><span className="eyebrow !text-paper/60">The problem</span></Reveal>
             <Reveal delay={80}>
-              <h2 id="problem-h" className="h2 mt-6">Your money shouldn’t be <em className="text-coral-soft">another mystery.</em></h2>
+              <h2 id="problem-h" className="h2 mt-6">Your bank shows balances. <em className="text-coral-soft">Not where it went.</em></h2>
             </Reveal>
             <Reveal delay={160}>
-              <p className="lead mt-8 !text-paper/70">You shouldn’t need another spreadsheet, a complicated dashboard, or hours of bookkeeping just to understand your own finances.</p>
+              <p className="lead mt-8 !text-paper/70">The answers are spread across SMS alerts, statements and apps that ask for far more access than they should.</p>
             </Reveal>
           </div>
 
-          <ol className="relative border-l border-paper/20" aria-label="Where the bigger picture gets lost">
+          <ol className="relative border-l border-paper/20" aria-label="Why tracking money is hard">
             {DIARY.map((e, i) => (
               <li key={e.d} className="relative pb-12 pl-8 last:pb-0 sm:pl-12">
                 <span className="timeline-dot" aria-hidden="true" />
@@ -39,9 +39,9 @@ export function Problem() {
 
         <Reveal className="mt-24 grid gap-8 border-t border-paper/15 pt-14 md:grid-cols-[1.2fr_auto] md:items-end">
           <p className="display max-w-3xl text-[clamp(2rem,4.4vw,3.8rem)] leading-[1.02] tracking-[-0.03em]">
-            Knowing where you stand <span className="text-paper/55">should feel simple.</span>
+            Tinward does the sorting, <span className="text-paper/55">on your phone.</span>
           </p>
-          <a href="#product" className="btn !border-paper/40 !text-paper hover:!bg-paper hover:!text-ink border-2">See how Tinward helps <span aria-hidden="true">↓</span></a>
+          <a href="#how" className="btn !border-paper/40 !text-paper hover:!bg-paper hover:!text-ink border-2">See how it works <span aria-hidden="true">↓</span></a>
         </Reveal>
       </div>
     </section>

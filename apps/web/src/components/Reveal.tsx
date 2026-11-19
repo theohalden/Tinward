@@ -12,10 +12,10 @@ export function Reveal({ children, delay = 0, as: Tag = "div", className = "" }:
   );
 }
 
-export function PlannedChip({ children = "In development" }: { children?: ReactNode }) {
+export function PlannedChip({ children = "Coming soon" }: { children?: ReactNode }) {
   return <span className="status"><i className="dev" />{children}</span>;
 }
-export function LiveChip({ children = "In the app today" }: { children?: ReactNode }) {
+export function LiveChip({ children = "Available now" }: { children?: ReactNode }) {
   return <span className="status"><i className="live" />{children}</span>;
 }
 export function IllusChip() {

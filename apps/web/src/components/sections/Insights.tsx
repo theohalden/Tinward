@@ -15,13 +15,13 @@ export function Insights() {
       <div className="shell section">
         <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-24">
           <div>
-            <Reveal><span className="eyebrow">Understand your habits</span></Reveal>
-            <Reveal delay={80}><h2 id="insights-h" className="h2 mt-6">The story behind your spending.</h2></Reveal>
+            <Reveal><span className="eyebrow">Spending insights</span></Reveal>
+            <Reveal delay={80}><h2 id="insights-h" className="h2 mt-6">See which habits cost the most.</h2></Reveal>
             <Reveal delay={160}>
-              <p className="lead mt-8">A long list of transactions only tells you so much. What matters is seeing the bigger picture: which categories take up the most space, how your spending changes, and where there may be room to do things differently.</p>
+              <p className="lead mt-8">Monthly totals, category breakdowns and daily trends show where most of your money goes and how that changes from month to month.</p>
             </Reveal>
-            <Reveal delay={220}><p className="mt-8 max-w-md border-t border-line pt-5 text-[0.95rem] text-ink-2">Make sense of the numbers, without having to become an expert in them.</p></Reveal>
-            <Reveal delay={260}><div className="mt-8"><LiveChip>Category spending in the app today</LiveChip></div></Reveal>
+            <Reveal delay={220}><p className="mt-8 max-w-md border-t border-line pt-5 text-[0.95rem] text-ink-2">Built from your own transactions, with no setup and no manual entry.</p></Reveal>
+            <Reveal delay={260}><div className="mt-8"><LiveChip>Available now</LiveChip></div></Reveal>
           </div>
 
           <div ref={ref} className="paper-card p-6 sm:p-9">

@@ -23,7 +23,7 @@ try {
     assert.equal(response.status(), 200);
     assert.equal(response.headers()["x-content-type-options"], "nosniff");
     await page.evaluate(() => document.fonts.ready);
-    assert.equal(await page.locator("h1").textContent(), "All your money.In perspective.");
+    assert.equal(await page.locator("h1").textContent(), "Know where your money went.Privately.");
     assert.equal(await page.locator("form").count(), 0);
     assert.equal(await page.locator("#early-access").getByText(/Email signup is temporarily unavailable/).count(), 1);
     assert.match(await page.getByRole("link", { name: "Download Android APK", exact: true }).getAttribute("href"), /github\.com\/theohalden\/Tinward\/releases\/download\//);

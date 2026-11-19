@@ -19,29 +19,34 @@ export function SmsTracking() {
       <div className="shell section">
         <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-24">
           <div>
-            <Reveal><span className="eyebrow">The everyday, made clear</span></Reveal>
-            <Reveal delay={80}><h2 className="h2 mt-6">Finally, a clearer picture of where your money goes.</h2></Reveal>
+            <Reveal><span className="eyebrow">How it reads your money</span></Reveal>
+            <Reveal delay={80}><h2 className="h2 mt-6">From bank message to sorted transaction.</h2></Reveal>
             <Reveal delay={160}>
-              <p className="lead mt-8">Coffee on Monday. Groceries on Wednesday. That subscription you almost forgot about. Little decisions add up. Tinward makes your income and expenses easier to record, organize and understand, so you can see the patterns behind your spending.</p>
+              <p className="lead mt-8">Your bank already texts you every payment. Tinward reads those alerts on your phone, picks out the amount, account and merchant, and files each one under a category. You only review what it isn’t sure about.</p>
             </Reveal>
             <Reveal delay={200}>
               <ul className="mt-8 grid gap-3 text-[0.98rem] text-ink-2">
-                {["Keep income and expenses in one place.", "Organize transactions into meaningful categories.", "Look back at how your money moved over time."].map((t) => (
+                {["Reads your existing messages once, then new ones as they arrive.", "Sorts spending into categories and remembers your corrections.", "Imports a bank statement when you’d rather not allow SMS access."].map((t) => (
                   <li key={t} className="flex gap-3"><span className="mt-2.5 h-px w-4 flex-none bg-ink" aria-hidden="true" />{t}</li>
                 ))}
               </ul>
             </Reveal>
             <Reveal delay={220}><div className="mt-8"><LiveChip /></div></Reveal>
             <Reveal delay={260}>
-              <p className="mt-8 max-w-md border-t border-line pt-5 text-[0.95rem] text-ink-2">
-                <strong className="text-ink">Current regional support:</strong> Selected Indian message formats from HDFC, Kotak and Slice, plus a general UPI format. Broader coverage is not available yet. Messages Tinward doesn’t recognise are skipped, and a category can be wrong. That’s what the review queue is for.
-              </p>
+              <div className="mt-8 max-w-md border-t border-line pt-5 text-[0.95rem] text-ink-2">
+                <p className="font-bold text-ink">Supported today (India only)</p>
+                <ul className="mt-3 grid gap-2">
+                  <li><strong className="text-ink">SMS alerts:</strong> HDFC Bank, Kotak, Slice, and UPI payment messages.</li>
+                  <li><strong className="text-ink">Statement import (experimental):</strong> Kotak CSV, HDFC XLS and Slice XLSX files.</li>
+                </ul>
+                <p className="mt-3">Other banks aren’t supported yet, and messages Tinward doesn’t recognise are skipped. Check your totals against your bank statement.</p>
+              </div>
             </Reveal>
           </div>
 
           <Reveal delay={120}>
             <div>
-              <p className="text-sm font-bold text-ink-2">Explore a supported-format example</p>
+              <p className="text-sm font-bold text-ink-2">Tap an example message</p>
               <div role="radiogroup" aria-label="Sample bank messages" className="mt-3 grid gap-2">
                 {SAMPLES.map((m, idx) => {
                   const on = idx === i;
@@ -54,7 +59,7 @@ export function SmsTracking() {
                 })}
               </div>
               <div className="mt-3 rounded-[14px] bg-ink p-6 text-paper sm:p-8" aria-live="polite">
-                <p className="text-sm font-bold text-paper/55">How the current parser organises it</p>
+                <p className="text-sm font-bold text-paper/55">What Tinward reads from it</p>
                 <dl key={s.id} className="parsed mt-5 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
                   {Object.entries(s.parsed).map(([k, v]) => (
                     <div key={k}>

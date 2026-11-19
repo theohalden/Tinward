@@ -180,8 +180,9 @@ html.seen{--intro:0s;}
 .footer-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;}
 .footer-heading{font-family:var(--font-sans);font-size:.78rem;font-weight:700;letter-spacing:.04em;color:rgb(247 245 240/.5);padding-bottom:14px;border-bottom:1px solid rgb(247 245 240/.15);}
 .footer-cols ul{list-style:none;margin-top:10px;display:grid;}
-.footer-link{display:inline-flex;align-items:center;min-height:44px;color:rgb(247 245 240/.88);text-decoration:none;font-size:1rem;background:linear-gradient(currentColor,currentColor) left bottom 10px/0 1px no-repeat;transition:background-size 350ms var(--ease-out-quint),color 200ms;}
-.footer-link:hover{color:var(--color-coral-soft);background-size:100% 1px;}
+.footer-link{display:inline-flex;align-items:center;min-height:44px;color:rgb(247 245 240/.88);text-decoration:none;font-size:1rem;transition:color 200ms;}
+.footer-link>span{padding-bottom:3px;background:linear-gradient(currentColor,currentColor) left bottom/0 1px no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background-size 350ms var(--ease-out-quint);}
+.footer-link:hover{color:var(--color-coral-soft);}.footer-link:hover>span{background-size:100% 1px;}
 .footer-mark{font-family:var(--font-display);font-size:clamp(5rem,26vw,22rem);line-height:.8;letter-spacing:-.06em;text-align:center;margin-top:clamp(48px,8vw,96px);opacity:.07;user-select:none;white-space:nowrap;}
 .footer-legal{margin-top:20px;padding-top:20px;border-top:1px solid rgb(247 245 240/.15);font-size:.85rem;color:rgb(247 245 240/.55);}
 @media(max-width:900px){.footer-top{grid-template-columns:minmax(0,1fr);}}
@@ -256,3 +257,10 @@ details.faq:hover summary>span:last-child{background:var(--color-ink);color:var(
 .sc-controls>button{transition:background 200ms,transform 250ms var(--ease-out-quint);}.sc-controls>button:active{transform:scale(.9);}
 @media(prefers-reduced-motion:reduce){.tilt{transform:none!important;}.brand-mark *{transition:none!important;}}
 .pricing-soon{margin-top:auto;min-height:40px;display:inline-flex;align-items:center;font-size:.78rem;font-weight:700;opacity:.65;}
+/* Header over the dark hero (only until the page is scrolled) */
+.site-header[data-solid=false] .nav-brand{color:var(--color-paper);}
+.site-header[data-solid=false] .nav-links a{color:rgb(247 245 240/.78);}
+.site-header[data-solid=false] .nav-links a:hover{color:var(--color-paper);}
+.site-header[data-solid=false] .nav-links a:after{background:var(--color-saffron);}
+.site-header[data-solid=false] .menu-toggle{color:var(--color-paper);border-color:rgb(247 245 240/.3);}
+.site-header[data-solid=false] .nav-cta{background:var(--color-paper);color:var(--color-ink);box-shadow:none;}
